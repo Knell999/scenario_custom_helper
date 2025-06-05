@@ -29,12 +29,13 @@ def initialize_session_state():
     
     if 'customizer' not in st.session_state:
         st.session_state.customizer = GameCustomizer()
-    
-    if 'selected_scenario' not in st.session_state:
-        st.session_state.selected_scenario = "magic_kingdom"
+        
+    # 편집 모드로 고정
+    if 'work_mode' not in st.session_state:
+        st.session_state.work_mode = "edit"
         
     if 'investment_focus' not in st.session_state:
-        st.session_state.investment_focus = "stable_investment"
+        st.session_state.investment_focus = "story_editing"
 
 
 def check_api_key():
@@ -80,12 +81,12 @@ def main():
     # 왼쪽: 채팅 인터페이스
     with col1:
         st.subheader("💬 AI 스토리 편집기")
-        render_chat_interface(st.session_state.customizer, st.session_state.selected_scenario)
+        render_chat_interface(st.session_state.customizer)
     
     # 오른쪽: 스토리 뷰어
     with col2:
         st.subheader("📖 스토리 미리보기")
-        render_story_viewer(st.session_state.selected_scenario, st.session_state.customizer)
+        render_story_viewer(st.session_state.customizer)
     
     # 하단: 정보 탭들
     render_info_tabs()

@@ -6,13 +6,13 @@ import json
 from datetime import datetime
 
 
-def render_story_viewer(scenario_type, customizer):
-    """스토리 뷰어 렌더링"""
+def render_story_viewer(customizer):
+    """스토리 뷰어 렌더링 - 편집 전용"""
     # 선택된 스토리가 있는 경우 해당 스토리 표시
     if hasattr(st.session_state, 'selected_story') and st.session_state.selected_story:
         render_selected_story_viewer(customizer)
     elif st.session_state.get('current_game_data'):
-        render_generated_story_viewer(scenario_type, customizer)
+        render_edited_story_viewer(customizer)
     else:
         render_empty_state()
 
@@ -53,9 +53,9 @@ def render_selected_story_viewer(customizer):
         render_json_data(story_data)
 
 
-def render_generated_story_viewer(scenario_type, customizer):
-    """새로 생성된 스토리 표시"""
-    st.write("새로 생성된 스토리:")
+def render_edited_story_viewer(customizer):
+    """수정된 스토리 표시"""
+    st.write("수정된 스토리:")
     
     try:
         if isinstance(st.session_state.current_game_data, str):
@@ -64,7 +64,7 @@ def render_generated_story_viewer(scenario_type, customizer):
             game_data = st.session_state.current_game_data
         
         if isinstance(game_data, list):
-            st.success(f"🎮 총 {len(game_data)}개의 게임 턴이 생성되었습니다!")
+            st.success(f"✏️ 총 {len(game_data)}개의 게임 턴이 수정되었습니다!")
             
             # 처음 3개 턴만 미리보기
             for i, turn_data in enumerate(game_data[:3]):
@@ -80,41 +80,49 @@ def render_generated_story_viewer(scenario_type, customizer):
             st.json(game_data)
             
     except json.JSONDecodeError:
-        st.error("생성된 데이터가 올바른 JSON 형식이 아닙니다.")
+        st.error("수정된 데이터가 올바른 JSON 형식이 아닙니다.")
         st.code(st.session_state.current_game_data)
 
 
 def render_empty_state():
     """빈 상태 표시"""
-    st.info("💬 왼쪽에서 스토리를 선택하거나 새로운 스토리를 생성해보세요!")
+    st.info("💬 왼쪽에서 편집할 스토리를 선택해보세요!")
     
     # 사용 가능한 기능 안내
     st.markdown("""
-    ### 🎯 사용 가능한 기능
+    ### 🎯 스토리 편집 기능
     
-    **📝 스토리 편집 모드:**
-    - 기존 저장된 스토리를 선택하여 수정
-    - 캐릭터, 배경, 이벤트, 대화 등 다양한 요소 편집
-    - 실시간 미리보기 및 구조 분석
+    **📚 스토리 선택**
+    - 사이드바에서 저장된 스토리를 선택하세요
     
-    **🆕 새 스토리 생성 모드:**
-    - AI와 대화하며 새로운 스토리 생성
-    - 투자 교육 목적에 맞는 맞춤형 시나리오
-    - 다양한 템플릿과 학습 목표 선택
+    **✏️ 편집 요청 예시:**
+    - "빵집 주인의 이름을 '토토'로 바꿔줘"
+    - "3턴의 이벤트를 더 흥미진진하게 만들어줘"
+    - "전체적인 대화를 더 재미있게 수정해줘"
+    - "뉴스 내용을 더 쉽게 설명해줘"
+    
+    **🔍 미리보기 기능:**
+    - 선택한 스토리의 구조와 내용을 확인할 수 있어요
+    - 수정된 내용을 실시간으로 미리볼 수 있어요
     """)
     
-    # 빠른 시작 버튼
-    col1, col2 = st.columns(2)
+    # 도움말 정보
+    with st.expander("💡 사용 팁"):
+        st.markdown("""
+        - 구체적인 수정 요청을 하면 더 정확한 결과를 얻을 수 있어요
+        - 여러 번에 나누어 조금씩 수정하는 것이 좋아요
+        - 수정 후에는 백업이 자동으로 생성됩니다
+        """)
     
-    with col1:
-        if st.button("📝 스토리 편집 시작", type="primary"):
-            st.session_state.work_mode = "edit"
-            st.rerun()
-    
-    with col2:
-        if st.button("🆕 새 스토리 생성", type="secondary"):
-            st.session_state.work_mode = "create"
-            st.rerun()
+    # 스토리 목록 표시 (있는 경우)
+    if 'customizer' in st.session_state:
+        available_stories = st.session_state.customizer.get_available_stories()
+        if available_stories:
+            st.write("**📖 편집 가능한 스토리:**")
+            for story in available_stories:
+                st.write(f"• {story}")
+        else:
+            st.warning("저장된 스토리가 없습니다. 스토리 파일을 saved_stories 폴더에 추가해주세요.")
 
 
 def render_story_preview(story_data):

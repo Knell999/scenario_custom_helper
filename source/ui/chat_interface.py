@@ -7,7 +7,6 @@ import json
 
 def render_story_selector(customizer):
     """저장된 스토리 선택 인터페이스"""
-    st.subheader("📚 편집할 스토리 선택")
     
     # 사용 가능한 스토리 목록 가져오기
     available_stories = customizer.get_available_stories()
@@ -102,79 +101,22 @@ def render_story_editing_guide():
         """)
 
 
-def render_chat_interface(customizer, scenario_type):
-    """채팅 인터페이스 렌더링"""
-    st.header("💬 스토리 편집 챗봇")
+def render_chat_interface(customizer):
+    """채팅 인터페이스 렌더링 - 스토리 편집 전용"""
     
     # 스토리 선택 섹션
     render_story_selector(customizer)
     
-    # 투자 방식별 가이드 메시지
-    investment_focus = getattr(st.session_state, 'investment_focus', 'stable_investment')
-    
-    focus_guides = {
-        "story_editing": {
-            "emoji": "✏️",
-            "title": "스토리 편집 모드",
-            "examples": [
-                "캐릭터 이름을 바꿔줘",
-                "3턴 이벤트를 더 재미있게 만들어줘",
-                "배경을 우주로 바꿔줘"
-            ]
-        },
-        "stable_investment": {
-            "emoji": "🛡️",
-            "title": "안정형 투자 학습",
-            "examples": [
-                "안정적인 투자 방법을 알려줘",
-                "리스크를 줄이는 방법을 배우고 싶어",
-                "예금과 적금의 차이를 설명해줘"
-            ]
-        },
-        "diversification": {
-            "emoji": "🥚",
-            "title": "분산투자 학습",
-            "examples": [
-                "분산투자가 왜 중요한지 알려줘",
-                "포트폴리오를 어떻게 구성하나요?",
-                "계란을 한 바구니에 담지 말라는 뜻을 설명해줘"
-            ]
-        },
-        "trading_timing": {
-            "emoji": "⏰",
-            "title": "매매 타이밍 학습",
-            "examples": [
-                "언제 사고 팔지 어떻게 정하나요?",
-                "매수 매도 타이밍을 알려줘",
-                "감정적 투자를 피하는 방법을 배우고 싶어"
-            ]
-        },
-        "growth_investment": {
-            "emoji": "📈",
-            "title": "성장형 투자 학습",
-            "examples": [
-                "성장 가능성이 높은 투자를 알려줘",
-                "높은 수익과 높은 위험의 관계를 설명해줘",
-                "장기 투자의 장점을 배우고 싶어"
-            ]
-        }
-    }
-    
-    # 현재 투자 포커스에 따른 가이드 표시
-    current_guide = focus_guides.get(investment_focus, focus_guides["stable_investment"])
-    
-    # 선택된 스토리가 있으면 편집 모드 가이드 표시
-    if hasattr(st.session_state, 'selected_story') and st.session_state.selected_story:
-        current_guide = focus_guides["story_editing"]
-    
-    # 가이드 메시지 표시
+    # 스토리 편집 가이드 메시지
     st.info(f"""
-    **{current_guide['emoji']} {current_guide['title']}**
+    **✏️ 스토리 편집 모드**
     
-    💡 **이런 질문을 해보세요:**
-    • {current_guide['examples'][0]}
-    • {current_guide['examples'][1]}
-    • {current_guide['examples'][2]}
+    💡 **이런 수정을 요청해보세요:**
+    • 캐릭터 이름을 바꿔줘
+    • 3턴 이벤트를 더 재미있게 만들어줘
+    • 배경을 우주로 바꿔줘
+    • 대화를 더 재미있게 수정해줘
+    • 뉴스 내용을 더 쉽게 바꿔줘
     
     난이도 조절도 가능해요: "더 쉽게 설명해줘", "더 자세히 알려줘"
     """)
@@ -208,17 +150,17 @@ def render_chat_interface(customizer, scenario_type):
             with st.chat_message("assistant"):
                 with st.spinner("스토리를 수정하고 있습니다..."):
                     try:
-                        # 선택된 스토리가 있으면 수정 모드, 없으면 생성 모드
-                        if hasattr(st.session_state, 'selected_story') and st.session_state.selected_story:
-                            # 스토리 수정 모드
-                            game_data, analysis = customizer.modify_existing_story(
-                                st.session_state.selected_story, user_input, st.session_state.chat_history
-                            )
-                        else:
-                            # 새 스토리 생성 모드 (기존 기능 유지)
-                            game_data, analysis = customizer.generate_custom_scenario(
-                                user_input, scenario_type, st.session_state.chat_history
-                            )
+                        # 선택된 스토리가 있는지 확인
+                        if not (hasattr(st.session_state, 'selected_story') and st.session_state.selected_story):
+                            error_msg = "먼저 편집할 스토리를 선택해주세요."
+                            st.error(error_msg)
+                            st.session_state.chat_history.append(("assistant", error_msg))
+                            return
+                        
+                        # 스토리 수정 모드 전용
+                        game_data, analysis = customizer.modify_existing_story(
+                            st.session_state.selected_story, user_input, st.session_state.chat_history
+                        )
                         
                         if game_data and analysis:
                             st.session_state.current_game_data = game_data
@@ -226,11 +168,11 @@ def render_chat_interface(customizer, scenario_type):
                             # 의도 분석 결과 표시
                             intent_type = analysis["intent"]["type"]
                             intent_display = {
-                                "character_change": "🧙‍♀️ 캐릭터 변경",
-                                "setting_change": "🌍 배경 변경", 
-                                "difficulty_adjustment": "📊 난이도 조절",
-                                "story_enhancement": "📖 스토리 개선",
-                                "general": "💬 일반 요청"
+                                "character": "🧙‍♀️ 캐릭터 수정",
+                                "setting": "🌍 배경 수정", 
+                                "events": "📊 이벤트 수정",
+                                "dialogue": "📖 대화 수정",
+                                "general": "💬 일반 수정"
                             }
                             
                             response = f"✨ 요청을 분석했습니다: {intent_display.get(intent_type, intent_type)}"
@@ -258,12 +200,12 @@ def render_chat_interface(customizer, scenario_type):
                             try:
                                 parsed_data = json.loads(game_data)
                                 if isinstance(parsed_data, list) and len(parsed_data) > 0:
-                                    st.metric("생성된 게임 턴", len(parsed_data))
+                                    st.metric("수정된 게임 턴", len(parsed_data))
                             except:
                                 pass
                                 
                         else:
-                            error_msg = "죄송해요, 스토리 생성에 실패했습니다. 다시 시도해주세요."
+                            error_msg = "죄송해요, 스토리 수정에 실패했습니다. 다시 시도해주세요."
                             st.error(error_msg)
                             st.session_state.chat_history.append(("assistant", error_msg))
                             
