@@ -49,15 +49,15 @@ def check_api_key():
 def setup_page():
     """페이지 설정"""
     st.set_page_config(
-        page_title="🎮 투자 교육 스토리 커스터마이저",
-        page_icon="🎮",
+        page_title="🎮 투자 교육 스토리 편집기",
+        page_icon="✏️",
         layout="wide",
         initial_sidebar_state="expanded"
     )
     
     # 페이지 헤더
-    st.title("🎮 투자 교육 스토리 커스터마이저")
-    st.markdown("AI와 함께 투자 개념을 재미있는 스토리로 배워보세요!")
+    st.title("🎮 투자 교육 스토리 편집기")
+    st.markdown("기존 스토리를 AI와 함께 수정하고 개선해보세요!")
 
 
 def main():
@@ -79,12 +79,12 @@ def main():
     
     # 왼쪽: 채팅 인터페이스
     with col1:
-        st.subheader("💬 AI 커스터마이저")
+        st.subheader("💬 AI 스토리 편집기")
         render_chat_interface(st.session_state.customizer, st.session_state.selected_scenario)
     
     # 오른쪽: 스토리 뷰어
     with col2:
-        st.subheader("📖 생성된 스토리")
+        st.subheader("📖 스토리 미리보기")
         render_story_viewer(st.session_state.selected_scenario, st.session_state.customizer)
     
     # 하단: 정보 탭들

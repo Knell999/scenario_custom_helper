@@ -1,5 +1,5 @@
 """
-스토리 뷰어 UI 컴포넌트
+스토리 뷰어 UI 컴포넌트 - 기존 스토리 편집 기능 포함
 """
 import streamlit as st
 import json
@@ -8,247 +8,189 @@ from datetime import datetime
 
 def render_story_viewer(scenario_type, customizer):
     """스토리 뷰어 렌더링"""
-    st.header("📖 생성된 스토리")
-    
-    if st.session_state.current_game_data:
-        try:
-            # Handle both JSON string and already-parsed data
-            if isinstance(st.session_state.current_game_data, str):
-                # JSON 데이터 파싱
-                game_data = json.loads(st.session_state.current_game_data)
-            else:
-                # Already parsed data (from loaded stories)
-                game_data = st.session_state.current_game_data
-            
-            # 탭으로 구분하여 표시
-            tab1, tab2 = st.tabs(["📚 스토리 미리보기", "💾 JSON 데이터"])
-            
-            with tab1:
-                if isinstance(game_data, list):
-                    # 스토리 평가 기능
-                    render_story_rating(scenario_type, customizer)
-                    
-                    st.markdown("---")
-                    
-                    # 스토리 정보 표시
-                    st.success(f"🎮 총 {len(game_data)}개의 게임 턴이 생성되었습니다!")
-                    
-                    # 각 턴의 스토리 표시
-                    for i, turn_data in enumerate(game_data[:3]):  # 처음 3개만 미리보기
-                        with st.expander(f"📅 Day {i+1} 미리보기", expanded=(i==0)):
-                            if 'situation' in turn_data:
-                                st.write("**상황:**")
-                                st.write(turn_data['situation'])
-                            
-                            if 'shops' in turn_data:
-                                st.write("**상점 정보:**")
-                                for shop in turn_data['shops']:
-                                    st.write(f"• **{shop.get('name', '알 수 없는 상점')}**: {shop.get('description', '설명 없음')}")
-                    
-                    if len(game_data) > 3:
-                        st.info(f"+ {len(game_data) - 3}개 더 많은 턴이 있습니다.")
-                
-                else:
-                    st.write("생성된 게임 데이터:")
-                    st.json(game_data)
-            
-            with tab2:
-                st.subheader("📊 게임 데이터 구조")
-                
-                # Handle both JSON string and already-parsed data for display
-                if isinstance(st.session_state.current_game_data, str):
-                    display_data = st.session_state.current_game_data
-                else:
-                    display_data = json.dumps(st.session_state.current_game_data, ensure_ascii=False, indent=2)
-                
-                st.code(display_data, language="json")
-                
-                # 저장 및 다운로드 기능
-                render_save_download_section(scenario_type)
-                
-        except json.JSONDecodeError:
-            st.error("생성된 데이터가 올바른 JSON 형식이 아닙니다.")
-            st.code(st.session_state.current_game_data)
+    # 선택된 스토리가 있는 경우 해당 스토리 표시
+    if hasattr(st.session_state, 'selected_story') and st.session_state.selected_story:
+        render_selected_story_viewer(customizer)
+    elif st.session_state.get('current_game_data'):
+        render_generated_story_viewer(scenario_type, customizer)
     else:
-        render_example_requests()
+        render_empty_state()
 
 
-def render_story_rating(scenario_type, customizer):
-    """스토리 평가 섹션 렌더링"""
-    col_rating, col_feedback = st.columns([1, 2])
+def render_selected_story_viewer(customizer):
+    """선택된 기존 스토리 표시"""
+    story_name = st.session_state.selected_story
+    story_data = customizer.story_editor.load_story(story_name)
     
-    with col_rating:
-        st.subheader("⭐ 스토리 평가")
-        rating = st.slider("만족도", 1, 5, 3, key="story_rating")
-        
-        if st.button("📊 평가 제출", type="primary"):
-            st.success(f"⭐ {rating}/5점으로 평가되었습니다!")
+    if not story_data:
+        st.error("선택된 스토리를 불러올 수 없습니다.")
+        return
     
-    with col_feedback:
-        st.subheader("💬 피드백")
-        feedback = st.text_area(
-            "개선사항이나 의견을 남겨주세요",
-            placeholder="예: 더 재미있는 캐릭터를 추가해주세요",
-            key="story_feedback"
-        )
+    st.info(f"📚 현재 편집 중인 스토리: **{story_name}**")
+    
+    # 스토리 요약 정보
+    summary = customizer.get_story_summary(story_name)
+    if summary:
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("총 턴 수", summary.get('total_turns', 0))
+        with col2:
+            st.metric("캐릭터 수", len(summary.get('characters', [])))
+        with col3:
+            st.write(f"**최종 수정**")
+            st.write(f"{summary.get('last_modified', 'Unknown')}")
+    
+    # 탭으로 구분하여 표시
+    tab1, tab2, tab3 = st.tabs(["📚 스토리 미리보기", "📊 스토리 구조", "💾 JSON 데이터"])
+    
+    with tab1:
+        render_story_preview(story_data)
         
-        if st.button("🔄 피드백 반영하여 개선", type="secondary"):
-            if feedback.strip():
-                # 피드백을 반영한 개선 요청
-                improvement_request = f"사용자 평가: {rating}/5점. 피드백: {feedback}. 이를 반영하여 스토리를 개선해주세요."
-                
-                # 채팅 히스토리에 추가하고 개선 요청
-                st.session_state.chat_history.append(("user", improvement_request))
-                
-                with st.spinner("피드백을 반영하여 스토리를 개선하고 있습니다..."):
-                    try:
-                        improved_data, analysis = customizer.generate_custom_scenario(
-                            improvement_request, scenario_type, st.session_state.chat_history
-                        )
-                        
-                        if improved_data:
-                            st.session_state.current_game_data = improved_data
-                            response = "✨ 피드백을 반영하여 스토리를 개선했습니다!"
-                            st.session_state.chat_history.append(("assistant", response))
-                            st.success(response)
-                            st.rerun()
-                    except Exception as e:
-                        st.error(f"개선 중 오류 발생: {e}")
+    with tab2:
+        render_story_structure(story_data)
+        
+    with tab3:
+        render_json_data(story_data)
 
 
-def render_save_download_section(scenario_type):
-    """저장 및 다운로드 섹션 렌더링"""
-    col_save, col_download = st.columns(2)
+def render_generated_story_viewer(scenario_type, customizer):
+    """새로 생성된 스토리 표시"""
+    st.write("새로 생성된 스토리:")
     
-    with col_save:
-        st.subheader("💾 스토리 저장")
-        story_name = st.text_input(
-            "스토리 이름",
-            value=f"내가 만든 {scenario_type} 스토리",
-            key="story_name_input"
-        )
-        
-        if st.button("💾 저장하기", type="primary"):
-            if story_name.strip():
-                try:
-                    filepath = st.session_state.story_manager.save_story(
-                        story_data=st.session_state.current_game_data,
-                        story_name=story_name,
-                        scenario_type=scenario_type
-                    )
-                    
-                    if filepath:
-                        st.success(f"✅ '{story_name}' 스토리가 저장되었습니다!")
-                        st.info(f"📁 저장 위치: {filepath}")
-                    else:
-                        st.error("❌ 저장에 실패했습니다.")
-                except Exception as e:
-                    st.error(f"저장 중 오류 발생: {e}")
-            else:
-                st.warning("스토리 이름을 입력해주세요.")
-    
-    with col_download:
-        st.subheader("📥 JSON 다운로드")
-        
-        # Ensure data is in JSON string format for download
+    try:
         if isinstance(st.session_state.current_game_data, str):
-            download_data = st.session_state.current_game_data
+            game_data = json.loads(st.session_state.current_game_data)
         else:
-            download_data = json.dumps(st.session_state.current_game_data, ensure_ascii=False, indent=2)
+            game_data = st.session_state.current_game_data
         
-        st.download_button(
-            label="📄 JSON 파일 다운로드",
-            data=download_data,
-            file_name=f"custom_game_{scenario_type}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
-            mime="application/json"
-        )
+        if isinstance(game_data, list):
+            st.success(f"🎮 총 {len(game_data)}개의 게임 턴이 생성되었습니다!")
+            
+            # 처음 3개 턴만 미리보기
+            for i, turn_data in enumerate(game_data[:3]):
+                with st.expander(f"📅 Day {i+1} 미리보기", expanded=(i==0)):
+                    if 'result' in turn_data:
+                        st.write("**상황:**")
+                        st.write(turn_data['result'])
+                    
+                    if 'news' in turn_data:
+                        st.write("**뉴스:**")
+                        st.write(turn_data['news'])
+        else:
+            st.json(game_data)
+            
+    except json.JSONDecodeError:
+        st.error("생성된 데이터가 올바른 JSON 형식이 아닙니다.")
+        st.code(st.session_state.current_game_data)
 
 
-def render_example_requests():
-    """예시 요청 섹션 렌더링"""
-    st.info("💬 왼쪽 채팅에서 원하는 스토리를 요청해보세요!")
+def render_empty_state():
+    """빈 상태 표시"""
+    st.info("💬 왼쪽에서 스토리를 선택하거나 새로운 스토리를 생성해보세요!")
     
-    # 카테고리별 예시 요청
-    col_a, col_b = st.columns(2)
+    # 사용 가능한 기능 안내
+    st.markdown("""
+    ### 🎯 사용 가능한 기능
     
-    with col_a:
-        st.markdown("### 🧙‍♀️ 캐릭터 변경 예시")
-        character_examples = [
-            "주인공을 용감한 공주로 바꿔줘",
-            "마법사 대신 기사가 나오게 해줘",
-            "동물 친구들이 등장하는 스토리로 만들어줘",
-            "로봇이 주인공인 이야기로 바꿔줘"
-        ]
-        for example in character_examples:
-            if st.button(f"💭 {example}", key=f"char_{example[:10]}"):
-                st.session_state.example_request = example
-                st.rerun()
-        
-        st.markdown("### 🌍 배경 변경 예시")
-        setting_examples = [
-            "우주를 배경으로 하는 게임으로 만들어줘",
-            "바다 속 세계로 배경을 바꿔줘",
-            "정글 모험 스토리로 만들어줘",
-            "미래 도시가 배경인 이야기로 해줘"
-        ]
-        for example in setting_examples:
-            if st.button(f"🌟 {example}", key=f"setting_{example[:10]}"):
-                st.session_state.example_request = example
-                st.rerun()
+    **📝 스토리 편집 모드:**
+    - 기존 저장된 스토리를 선택하여 수정
+    - 캐릭터, 배경, 이벤트, 대화 등 다양한 요소 편집
+    - 실시간 미리보기 및 구조 분석
     
-    with col_b:
-        st.markdown("### 📊 난이도 조절 예시")
-        difficulty_examples = [
-            "더 쉬운 단어로 설명해줘",
-            "좀 더 어려운 내용으로 만들어줘",
-            "5세 아이도 이해할 수 있게 해줘",
-            "더 자세한 설명을 추가해줘"
-        ]
-        for example in difficulty_examples:
-            if st.button(f"📚 {example}", key=f"diff_{example[:10]}"):
-                st.session_state.example_request = example
-                st.rerun()
-        
-        st.markdown("### 📖 스토리 개선 예시")
-        story_examples = [
-            "더 재미있는 모험 요소를 넣어줘",
-            "미스터리한 요소를 추가해줘",
-            "친구들과 함께하는 이야기로 만들어줘",
-            "더 흥미진진한 스토리로 바꿔줘"
-        ]
-        for example in story_examples:
-            if st.button(f"✨ {example}", key=f"story_{example[:10]}"):
-                st.session_state.example_request = example
-                st.rerun()
+    **🆕 새 스토리 생성 모드:**
+    - AI와 대화하며 새로운 스토리 생성
+    - 투자 교육 목적에 맞는 맞춤형 시나리오
+    - 다양한 템플릿과 학습 목표 선택
+    """)
+    
+    # 빠른 시작 버튼
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        if st.button("📝 스토리 편집 시작", type="primary"):
+            st.session_state.work_mode = "edit"
+            st.rerun()
+    
+    with col2:
+        if st.button("🆕 새 스토리 생성", type="secondary"):
+            st.session_state.work_mode = "create"
+            st.rerun()
 
 
-def handle_example_request(customizer, scenario_type):
-    """예시 요청 처리"""
-    if hasattr(st.session_state, 'example_request'):
-        user_input = st.session_state.example_request
-        delattr(st.session_state, 'example_request')
-        
-        # 사용자 메시지 추가
-        st.session_state.chat_history.append(("user", user_input))
-        
-        # AI 응답 생성
-        with st.spinner("스토리를 생성하고 있습니다..."):
-            try:
-                game_data, analysis = customizer.generate_custom_scenario(
-                    user_input, scenario_type, st.session_state.chat_history
-                )
-                
-                if game_data and analysis:
-                    st.session_state.current_game_data = game_data
-                    response = f"✨ '{user_input}'을 반영한 새로운 스토리를 만들었어요!"
-                    st.session_state.chat_history.append(("assistant", response))
-                    st.success(response)
-                    st.rerun()
-                else:
-                    error_msg = "스토리 생성에 실패했습니다. 다시 시도해주세요."
-                    st.session_state.chat_history.append(("assistant", error_msg))
-                    st.error(error_msg)
-            except Exception as e:
-                error_msg = f"오류가 발생했습니다: {str(e)}"
-                st.session_state.chat_history.append(("assistant", error_msg))
-                st.error(error_msg)
+def render_story_preview(story_data):
+    """스토리 내용 미리보기"""
+    if not isinstance(story_data, list):
+        st.write("스토리 데이터 형식이 올바르지 않습니다.")
+        return
+    
+    st.success(f"🎮 총 {len(story_data)}개의 게임 턴이 있습니다!")
+    
+    # 처음 3개 턴만 미리보기
+    for i, turn_data in enumerate(story_data[:3]):
+        with st.expander(f"📅 Day {i+1} 미리보기", expanded=(i==0)):
+            if 'result' in turn_data:
+                st.write("**📰 상황:**")
+                st.write(turn_data['result'])
+            
+            if 'news' in turn_data:
+                st.write("**📢 뉴스:**")
+                st.write(turn_data['news'])
+            
+            if 'stocks' in turn_data:
+                st.write("**🏪 상점 정보:**")
+                for stock in turn_data['stocks']:
+                    st.write(f"• **{stock.get('name', '알 수 없는 상점')}**: {stock.get('current_value', 0)}원 ({stock.get('risk_level', '위험도 미정')})")
+    
+    if len(story_data) > 3:
+        st.info(f"+ {len(story_data) - 3}개 더 많은 턴이 있습니다.")
+
+
+def render_story_structure(story_data):
+    """스토리 구조 분석 표시"""
+    if not isinstance(story_data, list):
+        st.write("스토리 데이터 형식이 올바르지 않습니다.")
+        return
+    
+    # 기본 통계
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.metric("총 턴 수", len(story_data))
+    
+    with col2:
+        # 등장하는 상점/캐릭터 수
+        all_shops = set()
+        for turn in story_data:
+            if 'stocks' in turn:
+                for stock in turn['stocks']:
+                    all_shops.add(stock.get('name', ''))
+        st.metric("등장 상점 수", len(all_shops))
+    
+    with col3:
+        # 평균 상점 가치
+        total_values = []
+        for turn in story_data:
+            if 'stocks' in turn:
+                for stock in turn['stocks']:
+                    value = stock.get('current_value', 0)
+                    if isinstance(value, (int, float)):
+                        total_values.append(value)
+        avg_value = sum(total_values) / len(total_values) if total_values else 0
+        st.metric("평균 상점 가치", f"{avg_value:.1f}")
+
+
+def render_json_data(story_data):
+    """JSON 데이터 표시"""
+    st.subheader("📊 스토리 JSON 데이터")
+    
+    # JSON 형태로 표시
+    st.json(story_data)
+    
+    # 다운로드 버튼
+    json_str = json.dumps(story_data, ensure_ascii=False, indent=2)
+    st.download_button(
+        label="📄 JSON 파일 다운로드",
+        data=json_str,
+        file_name=f"story_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+        mime="application/json"
+    )
