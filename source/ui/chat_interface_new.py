@@ -1,5 +1,5 @@
 """
-채팅 인터페이스 UI 컴포넌트 - 스토리 편집 전용
+채팅 인터페이스 UI 컴포넌트 - 스토리 편집 기능 포함
 """
 import streamlit as st
 import json
@@ -10,17 +10,11 @@ def render_chat_interface(customizer):
     
     # 스토리가 선택되었는지 확인
     if not st.session_state.get('current_game_data'):
-        st.warning("👈 먼저 스토리를 선택해서 불러와주세요!")
-        st.info("""
-        **스토리를 불러오는 방법:**
-        1. 위의 스토리 목록에서 편집할 스토리를 선택하세요
-        2. '📖 불러오기' 버튼을 클릭하세요
-        3. 스토리가 로드되면 여기서 편집 요청을 입력할 수 있습니다
-        """)
+        st.warning("👈 먼저 사이드바에서 편집할 스토리를 선택해주세요!")
         return
     
     # 스토리 편집 가이드 메시지
-    st.info("""
+    st.info(f"""
     **✏️ 스토리 편집 모드**
     
     💡 **이런 수정을 요청해보세요:**
@@ -36,6 +30,10 @@ def render_chat_interface(customizer):
     # 채팅 히스토리 초기화
     if 'chat_history' not in st.session_state:
         st.session_state.chat_history = []
+    
+    # 현재 게임 데이터 초기화
+    if 'current_game_data' not in st.session_state:
+        st.session_state.current_game_data = None
     
     # 채팅 인터페이스
     with st.container():
@@ -58,7 +56,7 @@ def render_chat_interface(customizer):
             with st.chat_message("assistant"):
                 with st.spinner("스토리를 수정하고 있습니다..."):
                     try:
-                        # 스토리 수정 요청
+                        # 스토리 수정 모드 전용
                         game_data, analysis = customizer.modify_existing_story(
                             user_input, st.session_state.chat_history
                         )
@@ -80,7 +78,7 @@ def render_chat_interface(customizer):
                             st.write(response)
                             
                             # 품질 검증 결과 표시
-                            if analysis.get("validation"):
+                            if analysis["validation"]:
                                 validation = analysis["validation"]
                                 if validation["is_valid"]:
                                     st.success("✅ 고품질 스토리가 생성되었습니다!")
@@ -90,7 +88,7 @@ def render_chat_interface(customizer):
                                         st.write(f"• {issue}")
                             
                             # 개선 제안 표시
-                            if analysis.get("suggestions"):
+                            if analysis["suggestions"]:
                                 st.write("**💡 추가 개선 제안:**")
                                 for suggestion in analysis["suggestions"]:
                                     st.write(f"• {suggestion}")

@@ -13,6 +13,7 @@ sys.path.insert(0, current_dir)
 # 모듈 import
 from source.components.game_customizer import GameCustomizer
 from source.ui.sidebar import render_sidebar
+from source.ui.story_selector import render_story_selector
 from source.ui.chat_interface import render_chat_interface
 from source.ui.story_viewer import render_story_viewer
 from source.ui.info_tabs import render_info_tabs
@@ -42,7 +43,7 @@ def check_api_key():
     """API 키 확인"""
     api_key = load_api_key()
     if not api_key:
-        st.error("⚠️ OpenAI API 키가 설정되지 않았습니다. .env 파일에 OPENAI_API_KEY를 설정해주세요.")
+        st.error("⚠️ Google API 키가 설정되지 않았습니다. .env 파일에 GOOGLE_API_KEY를 설정해주세요.")
         st.stop()
     return api_key
 
@@ -75,7 +76,12 @@ def main():
     # 사이드바 렌더링
     render_sidebar()
     
-    # 메인 컨텐츠 영역
+    # 스토리가 선택되지 않은 경우 스토리 선택기 표시
+    if not st.session_state.get('current_game_data'):
+        render_story_selector()
+        return
+    
+    # 스토리가 선택된 경우 편집 인터페이스 표시
     col1, col2 = st.columns([1, 1])
     
     # 왼쪽: 채팅 인터페이스

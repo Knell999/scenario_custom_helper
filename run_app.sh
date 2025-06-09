@@ -19,12 +19,12 @@ fi
 
 # 필요한 패키지 설치 (이미 설치되어 있으면 스킵됨)
 echo "📦 패키지 의존성 확인 중..."
-uv pip install streamlit langchain langchain-openai python-dotenv openai
+uv pip install streamlit langchain langchain-google-genai python-dotenv google-generativeai
 
 # .env 파일 존재 확인
 if [ ! -f ".env" ]; then
-    echo "⚠️  .env 파일이 없습니다. OPENAI_API_KEY를 설정해주세요."
-    echo "예시: echo 'OPENAI_API_KEY=your_api_key_here' > .env"
+    echo "⚠️  .env 파일이 없습니다. GOOGLE_API_KEY를 설정해주세요."
+    echo "예시: echo 'GOOGLE_API_KEY=your_api_key_here' > .env"
 fi
 
 # Streamlit 앱 실행

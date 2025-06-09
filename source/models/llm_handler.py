@@ -1,9 +1,9 @@
 """
-LLM 모델 관리 모듈
+LLM 모델 관리 모듈 - Google Gemini API 사용
 """
 import os
 from langchain.prompts import ChatPromptTemplate
-from langchain_openai import ChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI
 
 from source.utils.config import load_api_key, get_model_settings
 
@@ -12,19 +12,19 @@ def initialize_llm():
     LLM 모델을 초기화합니다.
     
     Returns:
-        ChatOpenAI: 초기화된 ChatOpenAI 모델
+        ChatGoogleGenerativeAI: 초기화된 Gemini 모델
     """
     api_key = load_api_key()
     if not api_key:
         raise ValueError("API 키를 불러올 수 없습니다.")
     
-    os.environ["OPENAI_API_KEY"] = api_key
+    os.environ["GOOGLE_API_KEY"] = api_key
     settings = get_model_settings()
     
-    return ChatOpenAI(
+    return ChatGoogleGenerativeAI(
         model=settings["model_name"],
         temperature=settings["temperature"],
-        max_tokens=settings["max_tokens"]
+        convert_system_message_to_human=True  # Gemini는 시스템 메시지를 human으로 변환
     )
 
 def create_prompt_template(system_message, user_template="{question}"):
@@ -48,7 +48,7 @@ def generate_game_data(llm, prompt_template, prompt_content):
     게임 데이터를 생성합니다.
     
     Args:
-        llm (ChatOpenAI): 초기화된 LLM 모델
+        llm (ChatGoogleGenerativeAI): 초기화된 LLM 모델
         prompt_template (ChatPromptTemplate): 프롬프트 템플릿
         prompt_content (str): 프롬프트 내용
         

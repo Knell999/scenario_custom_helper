@@ -24,8 +24,8 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 # 프로젝트 클론 또는 다운로드 후 디렉토리 이동
 cd making_story_chatbot
 
-# OpenAI API 키 설정
-echo "OPENAI_API_KEY=your_api_key_here" > .env
+# Google API 키 설정
+echo "GOOGLE_API_KEY=your_api_key_here" > .env
 ```
 
 ### 2. 앱 실행
@@ -35,7 +35,7 @@ echo "OPENAI_API_KEY=your_api_key_here" > .env
 ./run_app.sh
 
 # 또는 직접 실행
-uv add streamlit langchain langchain-openai python-dotenv openai
+uv add streamlit langchain langchain-google-genai python-dotenv google-generativeai
 uv run streamlit run app.py
 ```
 
@@ -139,7 +139,7 @@ def get_model_settings():
 ## 🐛 문제 해결
 
 ### API 키 오류
-- `.env` 파일에 올바른 OpenAI API 키가 설정되어 있는지 확인
+- `.env` 파일에 올바른 Google API 키가 설정되어 있는지 확인
 - API 키에 충분한 크레딧이 있는지 확인
 
 ### 패키지 설치 오류
@@ -149,7 +149,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 
 # 캐시 클리어 후 재설치
 uv cache clean
-uv add streamlit langchain langchain-openai python-dotenv openai
+uv add streamlit langchain langchain-google-genai python-dotenv google-generativeai
 ```
 
 ### 포트 충돌
