@@ -1,0 +1,226 @@
+[
+  {
+    "turn_number": 1,
+    "result": "아기돼지 삼형제 마을에 오신 것을 환영합니다! 세 마리 돼지가 모두 집 짓기를 시작했어요. 당신의 7일간의 투자 모험이 지금 시작됩니다!",
+    "news": "마을에 화창한 날씨가 계속될 것이라는 예보가 있어요! 집 짓기가 훨씬 수월해질 것 같아요!",
+    "news_tag": "all",
+    "stocks": [
+      {
+        "name": "🌾 첫째 돼지",
+        "risk_level": "고위험 고수익",
+        "description": "지푸라기로 집을 가장 빠르게 짓습니다.",
+        "before_value": 100,
+        "current_value": 100,
+        "expectation": "화창한 날씨 덕분에 집 짓기가 신나게 잘 될 거예요!"
+      },
+      {
+        "name": "🪵 둘째 돼지",
+        "risk_level": "중위험 균형형",
+        "description": "나무로 적당히 빠르고 튼튼하게 집을 짓습니다.",
+        "before_value": 100,
+        "current_value": 100,
+        "expectation": "화창한 날씨 덕분에 집 짓기가 신나게 잘 될 거예요!"
+      },
+      {
+        "name": "🧱 셋째 돼지",
+        "risk_level": "저위험 저수익",
+        "description": "벽돌로 가장 천천히, 가장 튼튼하게 집을 짓습니다.",
+        "before_value": 100,
+        "current_value": 100,
+        "expectation": "화창한 날씨 덕분에 집 짓기가 신나게 잘 될 거예요!"
+      }
+    ]
+  },
+  {
+    "turn_number": 2,
+    "result": "화창한 날씨 덕분에 아기돼지 삼형제 모두 집 짓기에 속도를 냈어요! 쑥쑥 자라나는 집들이 보여요!",
+    "news": "그런데, 첫째 돼지의 지푸라기 집 주변에 강한 바람이 분다는 소식이 들려요! 지푸라기가 흔들릴 수도 있대요.",
+    "news_tag": "high",
+    "stocks": [
+      {
+        "name": "🌾 첫째 돼지",
+        "risk_level": "고위험 고수익",
+        "description": "지푸라기로 집을 가장 빠르게 짓습니다.",
+        "before_value": 100,
+        "current_value": 118,
+        "expectation": "지푸라기 집이 바람에 약해질까 봐 걱정돼요."
+      },
+      {
+        "name": "🪵 둘째 돼지",
+        "risk_level": "중위험 균형형",
+        "description": "나무로 적당히 빠르고 튼튼하게 집을 짓습니다.",
+        "before_value": 100,
+        "current_value": 108,
+        "expectation": "나무집은 괜찮을 거예요!"
+      },
+      {
+        "name": "🧱 셋째 돼지",
+        "risk_level": "저위험 저수익",
+        "description": "벽돌로 가장 천천히, 가장 튼튼하게 집을 짓습니다.",
+        "before_value": 100,
+        "current_value": 105,
+        "expectation": "벽돌집은 끄떡없어요!"
+      }
+    ]
+  },
+  {
+    "turn_number": 3,
+    "result": "어젯밤 강한 바람 때문에 첫째 돼지의 지푸라기 집이 조금 망가졌어요! 다시 손을 봐야겠대요. 둘째와 셋째 돼지는 튼튼하게 집을 지었답니다.",
+    "news": "마을의 유명한 건축가가 셋째 돼지의 벽돌 집을 보고 감탄하며 튼튼한 기초 기술을 전수해주었다고 해요!",
+    "news_tag": "low",
+    "stocks": [
+      {
+        "name": "🌾 첫째 돼지",
+        "risk_level": "고위험 고수익",
+        "description": "지푸라기로 집을 가장 빠르게 짓습니다.",
+        "before_value": 118,
+        "current_value": 100,
+        "expectation": "빨리 집을 고쳐야 할 것 같아요."
+      },
+      {
+        "name": "🪵 둘째 돼지",
+        "risk_level": "중위험 균형형",
+        "description": "나무로 적당히 빠르고 튼튼하게 집을 짓습니다.",
+        "before_value": 108,
+        "current_value": 109,
+        "expectation": "특별한 소식은 없지만, 꾸준히 짓고 있어요."
+      },
+      {
+        "name": "🧱 셋째 돼지",
+        "risk_level": "저위험 저수익",
+        "description": "벽돌로 가장 천천히, 가장 튼튼하게 집을 짓습니다.",
+        "before_value": 105,
+        "current_value": 111,
+        "expectation": "더 튼튼한 집을 짓게 될 거예요!"
+      }
+    ]
+  },
+  {
+    "turn_number": 4,
+    "result": "건축가님의 도움으로 셋째 돼지의 벽돌 집 기초가 정말 튼튼해졌어요! 첫째 돼지는 집이 또 무너질까 봐 조마조마하며 겨우 집을 다시 세웠답니다.",
+    "news": "숲에서 덩치 큰 늑대가 나타났다는 소문이 돌아요! 늑대는 언제든 배고프면 집을 찾아올지도 모른대요!",
+    "news_tag": "all",
+    "stocks": [
+      {
+        "name": "🌾 첫째 돼지",
+        "risk_level": "고위험 고수익",
+        "description": "지푸라기로 집을 가장 빠르게 짓습니다.",
+        "before_value": 100,
+        "current_value": 98,
+        "expectation": "늑대가 오면 지푸라기 집은 위험할 텐데..."
+      },
+      {
+        "name": "🪵 둘째 돼지",
+        "risk_level": "중위험 균형형",
+        "description": "나무로 적당히 빠르고 튼튼하게 집을 짓습니다.",
+        "before_value": 109,
+        "current_value": 112,
+        "expectation": "나무집은 과연 늑대에 맞설 수 있을까요?"
+      },
+      {
+        "name": "🧱 셋째 돼지",
+        "risk_level": "저위험 저수익",
+        "description": "벽돌로 가장 천천히, 가장 튼튼하게 집을 짓습니다.",
+        "before_value": 111,
+        "current_value": 115,
+        "expectation": "벽돌집은 늑대도 끄떡없을 거예요!"
+      }
+    ]
+  },
+  {
+    "turn_number": 5,
+    "result": "늑대가 나타났다는 소식에 마을이 술렁거렸어요! 늑대는 아직 오지 않았지만, 모두 집을 더 튼튼히 하느라 바빴답니다. 특히 첫째 돼지는 걱정이 커져서 풀이 죽었어요.",
+    "news": "다행히도, 늑대가 아직 오지 않은 동안 마을의 모든 돼지가 서로 도우며 지푸라기 집과 나무집을 더 튼튼하게 보강하기 시작했어요!",
+    "news_tag": "all",
+    "stocks": [
+      {
+        "name": "🌾 첫째 돼지",
+        "risk_level": "고위험 고수익",
+        "description": "지푸라기로 집을 가장 빠르게 짓습니다.",
+        "before_value": 98,
+        "current_value": 85,
+        "expectation": "친구들 덕분에 집을 조금 더 튼튼히 할 수 있을 거예요!"
+      },
+      {
+        "name": "🪵 둘째 돼지",
+        "risk_level": "중위험 균형형",
+        "description": "나무로 적당히 빠르고 튼튼하게 집을 짓습니다.",
+        "before_value": 112,
+        "current_value": 107,
+        "expectation": "마을 친구들의 도움으로 집이 더 안전해질 거예요."
+      },
+      {
+        "name": "🧱 셋째 돼지",
+        "risk_level": "저위험 저수익",
+        "description": "벽돌로 가장 천천히, 가장 튼튼하게 집을 짓습니다.",
+        "before_value": 115,
+        "current_value": 113,
+        "expectation": "벽돌집은 원래 튼튼해서 괜찮을 거예요."
+      }
+    ]
+  },
+  {
+    "turn_number": 6,
+    "result": "마을 친구들이 힘을 합쳐 집들을 보강했어요! 특히 첫째 돼지의 지푸라기 집은 조금 더 버틸 수 있게 되었답니다. 둘째 돼지의 나무집도 더욱 튼튼해졌고요.",
+    "news": "앗! 밤사이 늑대가 나타났어요! 아기돼지 삼형제의 집을 정말로 날려버리려고 숨을 크게 들이쉬고 있대요!",
+    "news_tag": "all",
+    "stocks": [
+      {
+        "name": "🌾 첫째 돼지",
+        "risk_level": "고위험 고수익",
+        "description": "지푸라기로 집을 가장 빠르게 짓습니다.",
+        "before_value": 85,
+        "current_value": 95,
+        "expectation": "지푸라기 집이 과연 늑대를 막을 수 있을까요? 두근두근!"
+      },
+      {
+        "name": "🪵 둘째 돼지",
+        "risk_level": "중위험 균형형",
+        "description": "나무로 적당히 빠르고 튼튼하게 집을 짓습니다.",
+        "before_value": 107,
+        "current_value": 115,
+        "expectation": "나무집은 늑대의 바람에 버틸 수 있을까요?"
+      },
+      {
+        "name": "🧱 셋째 돼지",
+        "risk_level": "저위험 저수익",
+        "description": "벽돌로 가장 천천히, 가장 튼튼하게 집을 짓습니다.",
+        "before_value": 113,
+        "current_value": 117,
+        "expectation": "벽돌집은 전혀 흔들림이 없을 거예요!"
+      }
+    ]
+  },
+  {
+    "turn_number": 7,
+    "result": "늑대가 첫째 돼지의 지푸라기 집을 후! 불어버렸어요! 🌬️ 다행히 첫째 돼지는 둘째 돼지 집으로 도망쳤답니다. 늑대는 나무집과 벽돌집은 불지 못하고 도망갔어요! 💪",
+    "news": "늑대가 도망간 후, 첫째 돼지는 형제들의 도움을 받아 더 튼튼한 집을 짓기 시작했어요! 모두 안전하고 행복한 마을이 되었답니다. 당신 덕분이에요!",
+    "news_tag": "all",
+    "stocks": [
+      {
+        "name": "🌾 첫째 돼지",
+        "risk_level": "고위험 고수익",
+        "description": "지푸라기로 집을 가장 빠르게 짓습니다.",
+        "before_value": 95,
+        "current_value": 78,
+        "expectation": "이제 더 튼튼한 집을 지을 수 있을 거예요!"
+      },
+      {
+        "name": "🪵 둘째 돼지",
+        "risk_level": "중위험 균형형",
+        "description": "나무로 적당히 빠르고 튼튼하게 집을 짓습니다.",
+        "before_value": 115,
+        "current_value": 123,
+        "expectation": "우리 집이 튼튼해서 정말 다행이에요!"
+      },
+      {
+        "name": "🧱 셋째 돼지",
+        "risk_level": "저위험 저수익",
+        "description": "벽돌로 가장 천천히, 가장 튼튼하게 집을 짓습니다.",
+        "before_value": 117,
+        "current_value": 121,
+        "expectation": "제 집은 늑대도 못 불어요! 흐흐!"
+      }
+    ]
+  }
+]

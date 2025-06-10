@@ -1,5 +1,15 @@
-streamlit
-langchain
-langchain-google-genai
-python-dotenv
-google-generativeai
+# Web Framework
+streamlit>=1.28.0
+
+# LLM Framework
+langchain>=0.1.0
+langchain-google-genai>=2.0.0
+
+# Environment Management
+python-dotenv>=1.0.0
+
+# Google AI
+google-generativeai>=0.8.0
+
+# Optional: For better performance
+# watchdog>=3.0.0
