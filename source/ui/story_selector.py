@@ -29,8 +29,15 @@ def render_story_selector():
     col1, col2 = st.columns([3, 1])
     
     with col1:
-        story_names = [f"{story['metadata']['story_name']} ({story['metadata']['scenario_type']})" 
-                      for story in saved_stories]
+        # 스토리 이름에 수정 표시 추가
+        story_names = []
+        for story in saved_stories:
+            base_name = f"{story['metadata']['story_name']} ({story['metadata']['scenario_type']})"
+            is_modified = story['metadata'].get('is_modified', False)
+            if is_modified:
+                story_names.append(f"✏️ {base_name}")  # 수정된 스토리 표시
+            else:
+                story_names.append(f"📄 {base_name}")  # 원본 스토리 표시
         
         selected_story_index = st.selectbox(
             "스토리 목록:",
@@ -55,12 +62,22 @@ def render_story_selector():
             st.info(f"**📝 제목**  \n{selected_story_info['metadata']['story_name']}")
             
         with col_info2:
-            st.info(f"**🎭 유형**  \n{selected_story_info['metadata']['scenario_type']}")
+            scenario_type = selected_story_info['metadata']['scenario_type']
+            is_modified = selected_story_info['metadata'].get('is_modified', False)
+            type_display = f"{scenario_type} {'(수정됨)' if is_modified else '(원본)'}"
+            st.info(f"**🎭 유형**  \n{type_display}")
             
         with col_info3:
             file_size = selected_story_info.get('size', 0)
             size_kb = file_size / 1024 if file_size > 0 else 0
             st.info(f"**📊 크기**  \n{size_kb:.1f} KB")
+        
+        # 수정 히스토리 표시 (있는 경우)
+        user_requests = selected_story_info['metadata'].get('user_requests', [])
+        if user_requests:
+            with st.expander("📋 수정 히스토리", expanded=False):
+                for i, request in enumerate(user_requests, 1):
+                    st.write(f"{i}. {request}")
         
         # 불러오기 버튼 처리
         if load_button:

@@ -23,14 +23,34 @@ def render_chat_interface(customizer):
     st.info("""
     **✏️ 스토리 편집 모드**
     
-    💡 **이런 수정을 요청해보세요:**
-    • 캐릭터 이름을 바꿔줘
-    • 3턴 이벤트를 더 재미있게 만들어줘
-    • 배경을 우주로 바꿔줘
-    • 대화를 더 재미있게 수정해줘
-    • 뉴스 내용을 더 쉽게 바꿔줘
+    **🎯 경제 개념 강화 요청**
+            
+    • "분산 투자의 중요성을 보여주도록 한 트럭에만 투자했을 때와 세 트럭에 골고루 투자했을 때의 결과를 대조적으로 수정해 주세요"
+            
+    • "고위험-고수익 개념을 명확히 하도록 퓨전 타코 트럭의 변동성을 크게 만들어 주세요"
+            
+    • "외부 뉴스가 투자에 미치는 영향을 보여주도록 유명 유튜버 방문 같은 이벤트를 추가해 주세요"
     
-    난이도 조절도 가능해요: "더 쉽게 설명해줘", "더 자세히 알려줘"
+    **👶 자녀 맞춤형 스토리 요청**
+            
+    • "저희 아이가 공룡을 좋아해서 공룡 화석 발견 뉴스를 추가해 주세요"
+            
+    • "퓨전 타코 트럭을 감자튀김 트럭으로 이름과 설명을 바꿔주세요"
+            
+    • "더 긍정적인 스토리로 만들어서 모든 트럭이 함께 성장하는 따뜻한 이야기로
+             수정해 주세요"
+    • "더 도전적으로 만들어서 주가 변동 폭을 2배 크게 하고 마지막까지 예측 불가능하게 해주세요"
+    
+    **🌟 창의적 가치 교육 요청**
+            
+    • "착한 소비를 강조하도록 유기농 재료 사용 트럭이 더 인기를 얻는 스토리로 바꿔주세요"
+            
+    • "세 트럭이 협력해서 연합 신메뉴를 출시하는 협동 이벤트를 추가해 주세요"
+            
+    • "노래하는 아이스크림, 무지개색 샌드위치 같은 판타지 요소를 추가해 주세요"
+    
+    💾 **수정 완료 후 저장하기:**
+    원하는 제목으로 나만의 스토리를 저장할 수 있어요!
     """)
     
     # 채팅 히스토리 초기화
@@ -127,6 +147,71 @@ def render_chat_interface(customizer):
                                     st.metric("수정된 게임 턴", len(parsed_data))
                             except:
                                 pass
+                                
+                            # 저장 기능 추가
+                            st.markdown("---")
+                            st.markdown("**💾 수정된 스토리 저장**")
+                            
+                            # 수정된 스토리 표시용 컨테이너
+                            with st.expander("📖 수정된 스토리 미리보기", expanded=False):
+                                try:
+                                    parsed_data = json.loads(game_data)
+                                    if isinstance(parsed_data, list) and len(parsed_data) > 0:
+                                        for i, turn in enumerate(parsed_data[:3], 1):  # 처음 3턴만 미리보기
+                                            st.markdown(f"**턴 {turn.get('turn_number', i)}**")
+                                            st.write(f"📰 {turn.get('news', '뉴스 없음')}")
+                                        if len(parsed_data) > 3:
+                                            st.write(f"... 및 {len(parsed_data) - 3}개 턴 더")
+                                except:
+                                    st.write("스토리 데이터를 미리보기할 수 없습니다.")
+                            
+                            # 저장 UI
+                            col1, col2 = st.columns([3, 1])
+                            with col1:
+                                save_title = st.text_input(
+                                    "저장할 스토리 제목을 입력하세요",
+                                    placeholder="예: 수정된 마법 왕국 스토리",
+                                    key=f"save_title_{len(st.session_state.chat_history)}"
+                                )
+                            with col2:
+                                save_button = st.button(
+                                    "💾 저장하기",
+                                    type="primary",
+                                    key=f"save_button_{len(st.session_state.chat_history)}"
+                                )
+                            
+                            if save_button and save_title.strip():
+                                try:
+                                    # StoryManager import 추가
+                                    from source.utils.story_manager import StoryManager
+                                    story_manager = StoryManager()
+                                    
+                                    # 현재 스토리 정보 가져오기
+                                    current_story_name = st.session_state.get('current_story_name', 'unknown')
+                                    scenario_type = current_story_name.replace('game_scenario_', '').split('_')[0] if 'game_scenario_' in current_story_name else 'custom'
+                                    
+                                    # 사용자 요청 히스토리 수집
+                                    user_requests = [msg for role, msg in st.session_state.chat_history if role == "user"]
+                                    
+                                    # 스토리 저장
+                                    saved_path = story_manager.save_story(
+                                        story_data=game_data,
+                                        story_name=save_title.strip(),
+                                        scenario_type=scenario_type,
+                                        user_requests=user_requests
+                                    )
+                                    
+                                    st.success(f"✅ 스토리가 성공적으로 저장되었습니다!")
+                                    st.info(f"📁 저장 위치: `{saved_path}`")
+                                    
+                                    # 저장 후 알림 메시지를 채팅에 추가
+                                    save_msg = f"📝 스토리 '{save_title.strip()}'가 저장되었습니다."
+                                    st.session_state.chat_history.append(("assistant", save_msg))
+                                    
+                                except Exception as save_error:
+                                    st.error(f"저장 중 오류가 발생했습니다: {str(save_error)}")
+                            elif save_button and not save_title.strip():
+                                st.warning("저장할 스토리 제목을 입력해주세요.")
                                 
                         elif analysis and analysis.get("error"):
                             # 에러 메시지가 있는 경우
