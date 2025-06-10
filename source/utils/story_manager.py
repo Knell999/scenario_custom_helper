@@ -33,22 +33,40 @@ class StoryManager:
             str: 저장된 파일 경로
         """
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"{story_name}_{scenario_type}_{timestamp}.json"
+        
+        # 파일명 안전하게 처리 (특수문자 제거/변환)
+        safe_story_name = self._sanitize_filename(story_name)
+        safe_scenario_type = self._sanitize_filename(scenario_type)
+        
+        filename = f"story_{safe_story_name}_{safe_scenario_type}_{timestamp}.json"
         filepath = os.path.join(self.storage_dir, filename)
         
         # 메타데이터와 함께 저장
         story_with_metadata = {
             "metadata": {
-                "story_name": story_name,
+                "story_name": story_name,  # 원본 제목 유지
                 "scenario_type": scenario_type,
                 "created_at": datetime.now().isoformat(),
-                "user_requests": user_requests or []
+                "user_requests": user_requests or [],
+                "version": "1.0",
+                "is_modified": True if user_requests else False
             },
             "story_data": json.loads(story_data) if isinstance(story_data, str) else story_data
         }
         
         with open(filepath, 'w', encoding='utf-8') as f:
             json.dump(story_with_metadata, f, ensure_ascii=False, indent=2)
+        
+        return filepath
+    
+    def _sanitize_filename(self, name: str) -> str:
+        """파일명에 안전한 문자열로 변환합니다."""
+        # 특수문자를 언더스코어로 변환하고 공백 제거
+        import re
+        safe_name = re.sub(r'[^\w\s-]', '_', name)
+        safe_name = re.sub(r'[-\s]+', '_', safe_name)
+        safe_name = safe_name.strip('_')
+        return safe_name[:50]  # 파일명 길이 제한
         
         return filepath
     
@@ -87,48 +105,8 @@ class StoryManager:
                         }
                     elif isinstance(story, list):
                         # 기존 형식: 게임 데이터 배열인 경우
-                        # 파일명에서 스토리 정보 추출 (game_scenario_[type]_[timestamp].json)
-                        filename_parts = filename.replace('.json', '').split('_')
-                        
-                        if len(filename_parts) >= 3 and filename_parts[0] == 'game' and filename_parts[1] == 'scenario':
-                            # 스토리 타입과 타임스탬프 분리
-                            scenario_type = '_'.join(filename_parts[2:-2]) if len(filename_parts) > 4 else filename_parts[2]
-                            timestamp_part = '_'.join(filename_parts[-2:]) if len(filename_parts) >= 4 else ""
-                            
-                            # 스토리 이름을 파일명에서 추출하되 더 읽기 쉽게 변환
-                            story_name_mapping = {
-                                "magic_kingdom": "마법 왕국",
-                                "foodtruck_kingdom": "푸드트럭 왕국", 
-                                "moonlight_thief": "달빛 도둑",
-                                "three_little_pigs": "아기 돼지 삼형제"
-                            }
-                            
-                            display_name = story_name_mapping.get(scenario_type, scenario_type.replace('_', ' ').title())
-                            
-                            story_info = {
-                                "filename": filename,
-                                "filepath": filepath,
-                                "metadata": {
-                                    "story_name": display_name,
-                                    "scenario_type": scenario_type,
-                                    "created_at": self._extract_timestamp_from_filename(filename),
-                                    "user_requests": []
-                                },
-                                "size": file_size
-                            }
-                        else:
-                            # 파일명 패턴이 맞지 않는 경우 기본값 사용
-                            story_info = {
-                                "filename": filename,
-                                "filepath": filepath,
-                                "metadata": {
-                                    "story_name": filename.replace('.json', ''),
-                                    "scenario_type": "unknown",
-                                    "created_at": "",
-                                    "user_requests": []
-                                },
-                                "size": file_size
-                            }
+                        # 파일명에서 스토리 정보 추출
+                        story_info = self._extract_story_info_from_filename(filename, filepath, file_size)
                     else:
                         # 알 수 없는 형식
                         continue
@@ -169,6 +147,74 @@ class StoryManager:
             pass
         
         return ""
+
+    def _extract_story_info_from_filename(self, filename: str, filepath: str, file_size: int) -> dict:
+        """파일명에서 스토리 정보를 추출합니다."""
+        filename_parts = filename.replace('.json', '').split('_')
+        
+        # 새로운 형식: story_[name]_[type]_[timestamp].json
+        if len(filename_parts) >= 4 and filename_parts[0] == 'story':
+            story_name_parts = filename_parts[1:-2]  # 이름 부분 (여러 단어 가능)
+            scenario_type = filename_parts[-2]  # 타입
+            timestamp_part = filename_parts[-1]  # 타임스탬프
+            
+            story_name = ' '.join(story_name_parts).replace('_', ' ').title()
+            
+            return {
+                "filename": filename,
+                "filepath": filepath,
+                "metadata": {
+                    "story_name": story_name,
+                    "scenario_type": scenario_type,
+                    "created_at": self._extract_timestamp_from_filename(filename),
+                    "user_requests": [],
+                    "is_modified": True
+                },
+                "size": file_size
+            }
+        
+        # 기존 형식: game_scenario_[type]_[timestamp].json
+        elif len(filename_parts) >= 3 and filename_parts[0] == 'game' and filename_parts[1] == 'scenario':
+            # 스토리 타입과 타임스탬프 분리
+            scenario_type = '_'.join(filename_parts[2:-2]) if len(filename_parts) > 4 else filename_parts[2]
+            
+            # 스토리 이름을 파일명에서 추출하되 더 읽기 쉽게 변환
+            story_name_mapping = {
+                "magic_kingdom": "마법 왕국",
+                "foodtruck_kingdom": "푸드트럭 왕국", 
+                "moonlight_thief": "달빛 도둑",
+                "three_little_pigs": "아기 돼지 삼형제"
+            }
+            
+            display_name = story_name_mapping.get(scenario_type, scenario_type.replace('_', ' ').title())
+            
+            return {
+                "filename": filename,
+                "filepath": filepath,
+                "metadata": {
+                    "story_name": display_name,
+                    "scenario_type": scenario_type,
+                    "created_at": self._extract_timestamp_from_filename(filename),
+                    "user_requests": [],
+                    "is_modified": False
+                },
+                "size": file_size
+            }
+        
+        # 기타 형식
+        else:
+            return {
+                "filename": filename,
+                "filepath": filepath,
+                "metadata": {
+                    "story_name": filename.replace('.json', '').replace('_', ' ').title(),
+                    "scenario_type": "unknown",
+                    "created_at": "",
+                    "user_requests": [],
+                    "is_modified": False
+                },
+                "size": file_size
+            }
 
     def delete_story(self, filepath: str) -> bool:
         """저장된 스토리를 삭제합니다."""

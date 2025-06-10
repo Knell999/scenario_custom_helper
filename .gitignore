@@ -48,6 +48,17 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 
+# Test files
+test_*.py
+*_test.py
+simple_test.py
+final_verification.py
+
+# Temporary documentation
+*_COMPLETE.md
+*_GUIDE.md
+IMPLEMENTATION_*.md
+
 # Jupyter Notebook
 .ipynb_checkpoints
 
@@ -104,9 +115,11 @@ yarn-error.log*
 # Streamlit
 .streamlit/
 
-# Temporary test files
-test_*.py
-*_test.py
+# Additional temporary files to ignore
+backup_*/
+*_backup.*
+temp_*/
+*.tmp
 temp_*.py
 *_temp.py
 
