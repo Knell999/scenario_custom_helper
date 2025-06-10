@@ -72,13 +72,28 @@ def render_story_selector():
                 if isinstance(loaded_story, list):
                     # Old format: direct array of game data
                     st.session_state.current_game_data = loaded_story
+                    # 파일명에서 스토리 이름 추출 (확장자 제거)
                     story_name = selected_story_info['filename'].replace('.json', '')
-                else:
+                    # game_scenario_ 접두사 제거
+                    if story_name.startswith('game_scenario_'):
+                        story_name = story_name[14:]  # 'game_scenario_' 길이만큼 제거
+                        # 타임스탬프 부분 제거 (마지막 _YYYYMMDD_HHMMSS 패턴)
+                        parts = story_name.split('_')
+                        if len(parts) >= 3 and len(parts[-1]) == 6 and len(parts[-2]) == 8:
+                            # 마지막 두 부분(날짜, 시간) 제거
+                            story_name = '_'.join(parts[:-2])
+                elif isinstance(loaded_story, dict) and 'story_data' in loaded_story:
                     # New format: with metadata wrapper
                     st.session_state.current_game_data = loaded_story['story_data']
                     story_name = loaded_story['metadata'].get('story_name', selected_story_info['filename'].replace('.json', ''))
+                else:
+                    st.error("❌ 알 수 없는 스토리 파일 형식입니다.")
+                    return
                 
-                st.success(f"✅ '{story_name}' 스토리를 불러왔습니다!")
+                # 스토리 이름도 세션 상태에 저장
+                st.session_state.current_story_name = story_name
+                
+                st.success(f"✅ '{selected_story_info['metadata']['story_name']}' 스토리를 불러왔습니다!")
                 st.balloons()
                 st.rerun()
             else:

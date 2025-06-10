@@ -68,24 +68,108 @@ class StoryManager:
             return stories
         
         for filename in os.listdir(self.storage_dir):
-            if filename.endswith('.json'):
+            if filename.endswith('.json') and not filename.startswith('.'):
                 filepath = os.path.join(self.storage_dir, filename)
                 try:
                     story = self.load_story(filepath)
-                    story_info = {
-                        "filename": filename,
-                        "filepath": filepath,
-                        "metadata": story.get("metadata", {}),
-                        "size": len(str(story.get("story_data", [])))
-                    }
+                    
+                    # 파일 크기 계산
+                    file_size = os.path.getsize(filepath) if os.path.exists(filepath) else 0
+                    
+                    # 새로운 메타데이터 형식과 기존 배열 형식 모두 지원
+                    if isinstance(story, dict) and "metadata" in story:
+                        # 새로운 형식: 메타데이터가 있는 경우
+                        story_info = {
+                            "filename": filename,
+                            "filepath": filepath,
+                            "metadata": story["metadata"],
+                            "size": file_size
+                        }
+                    elif isinstance(story, list):
+                        # 기존 형식: 게임 데이터 배열인 경우
+                        # 파일명에서 스토리 정보 추출 (game_scenario_[type]_[timestamp].json)
+                        filename_parts = filename.replace('.json', '').split('_')
+                        
+                        if len(filename_parts) >= 3 and filename_parts[0] == 'game' and filename_parts[1] == 'scenario':
+                            # 스토리 타입과 타임스탬프 분리
+                            scenario_type = '_'.join(filename_parts[2:-2]) if len(filename_parts) > 4 else filename_parts[2]
+                            timestamp_part = '_'.join(filename_parts[-2:]) if len(filename_parts) >= 4 else ""
+                            
+                            # 스토리 이름을 파일명에서 추출하되 더 읽기 쉽게 변환
+                            story_name_mapping = {
+                                "magic_kingdom": "마법 왕국",
+                                "foodtruck_kingdom": "푸드트럭 왕국", 
+                                "moonlight_thief": "달빛 도둑",
+                                "three_little_pigs": "아기 돼지 삼형제"
+                            }
+                            
+                            display_name = story_name_mapping.get(scenario_type, scenario_type.replace('_', ' ').title())
+                            
+                            story_info = {
+                                "filename": filename,
+                                "filepath": filepath,
+                                "metadata": {
+                                    "story_name": display_name,
+                                    "scenario_type": scenario_type,
+                                    "created_at": self._extract_timestamp_from_filename(filename),
+                                    "user_requests": []
+                                },
+                                "size": file_size
+                            }
+                        else:
+                            # 파일명 패턴이 맞지 않는 경우 기본값 사용
+                            story_info = {
+                                "filename": filename,
+                                "filepath": filepath,
+                                "metadata": {
+                                    "story_name": filename.replace('.json', ''),
+                                    "scenario_type": "unknown",
+                                    "created_at": "",
+                                    "user_requests": []
+                                },
+                                "size": file_size
+                            }
+                    else:
+                        # 알 수 없는 형식
+                        continue
+                    
                     stories.append(story_info)
-                except:
+                except Exception as e:
+                    # 파일을 읽을 수 없는 경우 건너뛰기
+                    print(f"스토리 파일 읽기 실패: {filename}, 오류: {e}")
                     continue
         
         # 생성 시간 순으로 정렬 (최신 먼저)
         stories.sort(key=lambda x: x["metadata"].get("created_at", ""), reverse=True)
         return stories
     
+    def _extract_timestamp_from_filename(self, filename: str) -> str:
+        """파일명에서 타임스탬프를 추출하여 ISO 형식으로 변환합니다."""
+        try:
+            # game_scenario_[type]_[YYYYMMDD]_[HHMMSS].json 형식에서 타임스탬프 추출
+            filename_parts = filename.replace('.json', '').split('_')
+            if len(filename_parts) >= 2:
+                # 마지막 두 부분이 날짜와 시간
+                date_part = filename_parts[-2]  # YYYYMMDD
+                time_part = filename_parts[-1]  # HHMMSS
+                
+                if len(date_part) == 8 and len(time_part) == 6:
+                    # 날짜 형식 변환: YYYYMMDD -> YYYY-MM-DD
+                    year = date_part[:4]
+                    month = date_part[4:6]
+                    day = date_part[6:8]
+                    
+                    # 시간 형식 변환: HHMMSS -> HH:MM:SS
+                    hour = time_part[:2]
+                    minute = time_part[2:4]
+                    second = time_part[4:6]
+                    
+                    return f"{year}-{month}-{day}T{hour}:{minute}:{second}"
+        except:
+            pass
+        
+        return ""
+
     def delete_story(self, filepath: str) -> bool:
         """저장된 스토리를 삭제합니다."""
         try:

@@ -58,9 +58,32 @@ def render_chat_interface(customizer):
             with st.chat_message("assistant"):
                 with st.spinner("스토리를 수정하고 있습니다..."):
                     try:
+                        # 현재 스토리 이름 확인
+                        current_story_name = st.session_state.get('current_story_name')
+                        
+                        # current_story_name이 없으면 current_game_data에서 추출 시도
+                        if not current_story_name and st.session_state.get('current_game_data'):
+                            # 사용 가능한 스토리 목록에서 매칭 시도
+                            customizer_stories = customizer.get_available_stories()
+                            if customizer_stories:
+                                # 첫 번째 스토리를 기본값으로 사용 (임시 해결책)
+                                current_story_name = customizer_stories[0]
+                                st.session_state.current_story_name = current_story_name
+                        
+                        if not current_story_name:
+                            error_msg = "스토리 이름을 찾을 수 없습니다. 스토리를 다시 불러와주세요."
+                            st.error(error_msg)
+                            st.session_state.chat_history.append(("assistant", error_msg))
+                            
+                            # 디버깅 정보 표시
+                            debug_info = customizer.debug_story_info("")
+                            with st.expander("🔧 디버깅 정보"):
+                                st.json(debug_info)
+                            return
+                        
                         # 스토리 수정 요청
                         game_data, analysis = customizer.modify_existing_story(
-                            user_input, st.session_state.chat_history
+                            current_story_name, user_input, st.session_state.chat_history
                         )
                         
                         if game_data and analysis:
@@ -105,10 +128,25 @@ def render_chat_interface(customizer):
                             except:
                                 pass
                                 
+                        elif analysis and analysis.get("error"):
+                            # 에러 메시지가 있는 경우
+                            error_msg = analysis["error"]
+                            st.error(error_msg)
+                            st.session_state.chat_history.append(("assistant", error_msg))
+                            
+                            # 디버깅 정보 표시
+                            debug_info = customizer.debug_story_info(current_story_name)
+                            with st.expander("🔧 디버깅 정보"):
+                                st.json(debug_info)
                         else:
                             error_msg = "죄송해요, 스토리 수정에 실패했습니다. 다시 시도해주세요."
                             st.error(error_msg)
                             st.session_state.chat_history.append(("assistant", error_msg))
+                            
+                            # 디버깅 정보 표시
+                            debug_info = customizer.debug_story_info(current_story_name)
+                            with st.expander("🔧 디버깅 정보"):
+                                st.json(debug_info)
                             
                     except Exception as e:
                         error_msg = f"오류가 발생했습니다: {str(e)}"

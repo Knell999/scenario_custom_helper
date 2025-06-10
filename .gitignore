@@ -1,15 +1,119 @@
-# 환경 설정 파일
+# Environment variables
 .env
+.env.local
+.env.production
 
-# 가상환경 폴더
+# Virtual environments
 .venv/
+venv/
+env/
 
-
-# Python 캐시 파일
+# Python cache files
 __pycache__/
+*.py[cod]
+*$py.class
+*.so
 
-# Python 캐시 파일
-source/models/__pycache__
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
 
-# Python 캐시 파일
-source/utils/__pycache__
+# PyInstaller
+*.manifest
+*.spec
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Thumbnails
+._*
+
+# Files that might appear in the root of a volume
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Directories potentially created on remote AFP share
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Streamlit
+.streamlit/
+
+# Temporary test files
+test_*.py
+*_test.py
+temp_*.py
+*_temp.py
+
+# Backup files
+*_backup.py
+*_backup.json
+*_new.py
+
+# UV lock file (optional - comment out if you want to track it)
+# uv.lock

@@ -66,8 +66,8 @@ def render_edited_story_viewer(customizer):
         if isinstance(game_data, list):
             st.success(f"✏️ 총 {len(game_data)}개의 게임 턴이 수정되었습니다!")
             
-            # 처음 3개 턴만 미리보기
-            for i, turn_data in enumerate(game_data[:3]):
+            # 모든 턴 표시
+            for i, turn_data in enumerate(game_data):
                 with st.expander(f"📅 Day {i+1} 미리보기", expanded=(i==0)):
                     if 'result' in turn_data:
                         st.write("**상황:**")
@@ -126,15 +126,15 @@ def render_empty_state():
 
 
 def render_story_preview(story_data):
-    """스토리 내용 미리보기"""
+    """스토리 내용 미리보기 - 전체 턴 표시"""
     if not isinstance(story_data, list):
         st.write("스토리 데이터 형식이 올바르지 않습니다.")
         return
     
     st.success(f"🎮 총 {len(story_data)}개의 게임 턴이 있습니다!")
     
-    # 처음 3개 턴만 미리보기
-    for i, turn_data in enumerate(story_data[:3]):
+    # 모든 턴 표시
+    for i, turn_data in enumerate(story_data):
         with st.expander(f"📅 Day {i+1} 미리보기", expanded=(i==0)):
             if 'result' in turn_data:
                 st.write("**📰 상황:**")
@@ -148,9 +148,6 @@ def render_story_preview(story_data):
                 st.write("**🏪 상점 정보:**")
                 for stock in turn_data['stocks']:
                     st.write(f"• **{stock.get('name', '알 수 없는 상점')}**: {stock.get('current_value', 0)}원 ({stock.get('risk_level', '위험도 미정')})")
-    
-    if len(story_data) > 3:
-        st.info(f"+ {len(story_data) - 3}개 더 많은 턴이 있습니다.")
 
 
 def render_story_structure(story_data):

@@ -17,6 +17,7 @@ class StoryEditor:
     def load_story(self, story_name: str) -> Optional[Dict]:
         """저장된 스토리 파일을 로드합니다."""
         try:
+            # 먼저 정확한 파일명으로 시도
             story_path = os.path.join(self.stories_dir, f"{story_name}.json")
             if os.path.exists(story_path):
                 with open(story_path, 'r', encoding='utf-8') as f:
@@ -24,6 +25,33 @@ class StoryEditor:
                 self.current_story = story_data
                 self.current_story_name = story_name
                 return story_data
+            
+            # 파일이 없으면 패턴 매칭으로 찾기 (game_scenario_* 형식)
+            if not os.path.exists(self.stories_dir):
+                return None
+                
+            for filename in os.listdir(self.stories_dir):
+                if filename.endswith('.json') and not filename.startswith('.'):
+                    # game_scenario_{type}_{timestamp}.json에서 type 부분 추출
+                    if filename.startswith('game_scenario_'):
+                        file_story_name = filename.replace('game_scenario_', '').replace('.json', '')
+                        # 타임스탬프 부분 제거 (_YYYYMMDD_HHMMSS)
+                        parts = file_story_name.split('_')
+                        if len(parts) >= 3 and len(parts[-1]) == 6 and len(parts[-2]) == 8:
+                            # 마지막 두 부분(날짜, 시간) 제거
+                            extracted_story_name = '_'.join(parts[:-2])
+                        else:
+                            extracted_story_name = file_story_name
+                        
+                        # 매칭 확인 (정확한 매칭 또는 부분 매칭)
+                        if extracted_story_name == story_name or story_name in extracted_story_name:
+                            story_path = os.path.join(self.stories_dir, filename)
+                            with open(story_path, 'r', encoding='utf-8') as f:
+                                story_data = json.load(f)
+                            self.current_story = story_data
+                            self.current_story_name = story_name
+                            return story_data
+            
             return None
         except Exception as e:
             print(f"스토리 로드 실패: {e}")
@@ -36,10 +64,26 @@ class StoryEditor:
                 return []
             
             stories = []
-            for file in os.listdir(self.stories_dir):
-                if file.endswith('.json'):
-                    story_name = file.replace('.json', '')
-                    stories.append(story_name)
+            for filename in os.listdir(self.stories_dir):
+                if filename.endswith('.json') and not filename.startswith('.'):
+                    if filename.startswith('game_scenario_'):
+                        # game_scenario_{type}_{timestamp}.json에서 type 부분 추출
+                        file_story_name = filename.replace('game_scenario_', '').replace('.json', '')
+                        # 타임스탬프 부분 제거 (_YYYYMMDD_HHMMSS)
+                        parts = file_story_name.split('_')
+                        if len(parts) >= 3 and len(parts[-1]) == 6 and len(parts[-2]) == 8:
+                            # 마지막 두 부분(날짜, 시간) 제거
+                            story_name = '_'.join(parts[:-2])
+                        else:
+                            story_name = file_story_name
+                        
+                        if story_name not in stories:
+                            stories.append(story_name)
+                    else:
+                        # 일반적인 파일명 처리
+                        story_name = filename.replace('.json', '')
+                        stories.append(story_name)
+            
             return sorted(stories)
         except Exception as e:
             print(f"스토리 목록 로드 실패: {e}")
@@ -150,16 +194,25 @@ class StoryEditor:
             print(f"백업 생성 실패: {e}")
             return False
     
-    def validate_story_structure(self, story_data: Dict) -> Tuple[bool, List[str]]:
+    def validate_story_structure(self, story_data) -> Tuple[bool, List[str]]:
         """스토리 데이터의 구조가 유효한지 검증합니다."""
         errors = []
         
         try:
+            # 데이터 타입 확인
+            if story_data is None:
+                errors.append("스토리 데이터가 None입니다.")
+                return False, errors
+                
             if not isinstance(story_data, list):
-                errors.append("스토리 데이터는 리스트 형태여야 합니다.")
+                errors.append(f"스토리 데이터는 리스트 형태여야 합니다. 현재 타입: {type(story_data).__name__}")
                 return False, errors
             
-            required_fields = ['turn', 'result', 'news', 'stocks']
+            if len(story_data) == 0:
+                errors.append("스토리 데이터가 비어있습니다.")
+                return False, errors
+            
+            required_fields = ['turn_number', 'result', 'news', 'stocks']
             
             for i, turn_data in enumerate(story_data):
                 turn_num = i + 1
@@ -168,6 +221,10 @@ class StoryEditor:
                 for field in required_fields:
                     if field not in turn_data:
                         errors.append(f"{turn_num}턴에 '{field}' 필드가 없습니다.")
+                
+                # 턴 번호 일치성 확인
+                if 'turn_number' in turn_data and turn_data['turn_number'] != turn_num:
+                    errors.append(f"{turn_num}턴의 turn_number 값이 {turn_data['turn_number']}로 불일치합니다.")
                 
                 # 주식 데이터 확인
                 if 'stocks' in turn_data and isinstance(turn_data['stocks'], list):
