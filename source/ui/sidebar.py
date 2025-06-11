@@ -30,5 +30,18 @@ def render_sidebar():
             st.success("✅ 스토리 로드됨")
         else:
             st.warning("⏳ 스토리 선택 대기")
+        
+        st.markdown("---")
+        
+        # 시스템 관리 버튼
+        if st.button("🔧 시스템 관리", help="시스템 상태 및 관리 기능"):
+            st.session_state.show_system_management = True
+            st.rerun()
+        
+        # 메인으로 돌아가기
+        if st.session_state.get('show_system_management', False):
+            if st.button("🏠 메인으로 돌아가기"):
+                st.session_state.show_system_management = False
+                st.rerun()
     
     return None
