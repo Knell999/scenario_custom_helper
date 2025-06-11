@@ -8,9 +8,13 @@ from source.models.llm_handler import initialize_llm, create_prompt_template, ge
 from source.utils.prompts import get_system_prompt, get_story_modification_prompt
 from source.components.story_editor import StoryEditor
 from source.utils.chatbot_helper import ChatbotHelper
-import os
-from typing import List, Dict
+from source.utils.security import security_validator
+from source.utils.performance import performance_monitor
+import logging
+from typing import List, Dict, Tuple, Optional
 
+# 로깅 설정
+logger = logging.getLogger(__name__)
 
 class GameCustomizer:
     def __init__(self):
@@ -18,31 +22,55 @@ class GameCustomizer:
         self.llm = None
         self.story_editor = StoryEditor()
         self.chatbot_helper = ChatbotHelper()
+        self.max_retries = 3
         self.initialize_llm_model()
         
-    def initialize_llm_model(self):
+    def initialize_llm_model(self) -> bool:
         """LLM 모델 초기화"""
         try:
+            performance_monitor.start_timer("llm_initialization")
             self.llm = initialize_llm()
+            duration = performance_monitor.end_timer("llm_initialization")
+            logger.info(f"LLM 초기화 완료 ({duration:.2f}초)")
             return True
         except Exception as e:
+            logger.error(f"LLM 모델 초기화 실패: {e}")
             st.error(f"LLM 모델 초기화 실패: {e}")
             return False
     
-    def modify_existing_story(self, story_name: str, user_request: str, chat_history=None):
+    def modify_existing_story(self, story_name: str, user_request: str, chat_history=None) -> Tuple[Optional[str], Dict]:
         """기존 스토리를 사용자 요청에 따라 수정"""
+        performance_monitor.start_timer("story_modification")
+        
+        # 보안 검증
+        security_result = security_validator.validate_content_security(user_request)
+        if not security_result["is_safe"]:
+            logger.warning(f"보안 검증 실패: {security_result['issues']}")
+            return None, {"error": f"보안 검증 실패: {', '.join(security_result['issues'])}"}
+        
+        # 입력 정화
+        user_request = security_validator.sanitize_input(user_request)
+        
         if not self.llm:
-            return None, {"error": "LLM 모델이 초기화되지 않았습니다. 설정을 확인해주세요."}
+            error_msg = "LLM 모델이 초기화되지 않았습니다. 설정을 확인해주세요."
+            logger.error(error_msg)
+            return None, {"error": error_msg}
         
         # 현재 세션에 로드된 스토리 데이터 사용
-        import streamlit as st
         original_story = st.session_state.get('current_game_data')
         
         # 세션 데이터가 없으면 파일에서 로드 시도
         if not original_story:
-            original_story = self.story_editor.load_story(story_name)
-            if not original_story:
-                return None, {"error": f"'{story_name}' 스토리를 찾을 수 없습니다. 파일이 존재하는지 확인해주세요."}
+            try:
+                original_story = self.story_editor.load_story(story_name)
+                if not original_story:
+                    error_msg = f"'{story_name}' 스토리를 찾을 수 없습니다. 파일이 존재하는지 확인해주세요."
+                    logger.error(error_msg)
+                    return None, {"error": error_msg}
+            except Exception as e:
+                error_msg = f"스토리 로드 중 오류: {str(e)}"
+                logger.error(error_msg)
+                return None, {"error": error_msg}
         
         try:
             # 수정 요청 분석

@@ -1,10 +1,12 @@
 """
-LLM 모델 관리 모듈 - Google Gemini API 사용
+LLM 모델 관리 모듈 - LangChain with Google Gemini
 """
 import os
-from langchain.prompts import ChatPromptTemplate
+import json
+import re
 from langchain_google_genai import ChatGoogleGenerativeAI
-
+from langchain.prompts import PromptTemplate
+from langchain.schema import HumanMessage, SystemMessage
 from source.utils.config import load_api_key, get_model_settings
 
 def initialize_llm():
@@ -12,53 +14,68 @@ def initialize_llm():
     LLM 모델을 초기화합니다.
     
     Returns:
-        ChatGoogleGenerativeAI: 초기화된 Gemini 모델
+        ChatGoogleGenerativeAI: 초기화된 LangChain Gemini 모델
     """
     api_key = load_api_key()
     if not api_key:
         raise ValueError("API 키를 불러올 수 없습니다.")
     
-    os.environ["GOOGLE_API_KEY"] = api_key
     settings = get_model_settings()
     
-    return ChatGoogleGenerativeAI(
+    # LangChain GoogleGenerativeAI 모델 초기화
+    llm = ChatGoogleGenerativeAI(
         model=settings["model_name"],
-        temperature=settings["temperature"],
-        convert_system_message_to_human=True  # Gemini는 시스템 메시지를 human으로 변환
+        google_api_key=api_key,
+        temperature=settings.get("temperature", 0.7),
+        max_output_tokens=settings.get("max_tokens", 4096),
+        top_p=settings.get("top_p", 0.9)
     )
+    
+    return llm
 
 def create_prompt_template(system_message, user_template="{question}"):
     """
-    프롬프트 템플릿을 생성합니다.
+    LangChain 프롬프트 템플릿을 생성합니다.
     
     Args:
         system_message (str): 시스템 메시지
         user_template (str, optional): 사용자 템플릿. 기본값은 "{question}"
         
     Returns:
-        ChatPromptTemplate: 생성된 프롬프트 템플릿
+        PromptTemplate: LangChain 프롬프트 템플릿
     """
-    return ChatPromptTemplate.from_messages([
-        ("system", system_message),
-        ("user", user_template)
-    ])
+    template = f"""{system_message}
+
+사용자 요청: {user_template}"""
+    
+    return PromptTemplate(
+        input_variables=["question"],
+        template=template
+    )
 
 def generate_game_data(llm, prompt_template, prompt_content):
     """
     게임 데이터를 생성합니다.
     
     Args:
-        llm (ChatGoogleGenerativeAI): 초기화된 LLM 모델
-        prompt_template (ChatPromptTemplate): 프롬프트 템플릿
+        llm (ChatGoogleGenerativeAI): 초기화된 LangChain LLM 모델
+        prompt_template (PromptTemplate): LangChain 프롬프트 템플릿
         prompt_content (str): 프롬프트 내용
         
     Returns:
         str: 생성된 게임 데이터 (JSON 문자열)
     """
     print("게임 시나리오 데이터 생성 중...")
+    
     try:
-        chain = prompt_template | llm
-        response = chain.invoke({"question": prompt_content})
+        # LangChain을 사용한 프롬프트 생성 및 모델 호출
+        formatted_prompt = prompt_template.format(question=prompt_content)
+        
+        # LangChain 메시지 체인 생성
+        messages = [HumanMessage(content=formatted_prompt)]
+        
+        # 모델 호출
+        response = llm.invoke(messages)
         
         # 응답 내용 확인
         content = response.content
