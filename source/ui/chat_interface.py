@@ -21,33 +21,24 @@ def render_chat_interface(customizer):
     
     # 스토리 편집 가이드 메시지
     st.info("""
-    **✏️ 스토리 편집 모드**
+    **✏️ 스토리 편집 모드 - 이런 요청을 해보세요!**
     
-    **🎯 경제 개념 강화 요청**
-            
-    • "분산 투자의 중요성을 보여주도록 한 트럭에만 투자했을 때와 세 트럭에 골고루 투자했을 때의 결과를 대조적으로 수정해 주세요"
-            
-    • "고위험-고수익 개념을 명확히 하도록 퓨전 타코 트럭의 변동성을 크게 만들어 주세요"
-            
-    • "외부 뉴스가 투자에 미치는 영향을 보여주도록 유명 유튜버 방문 같은 이벤트를 추가해 주세요"
+    **🎯 스토리 내용 수정:**
+    • "주인공 이름을 민수로 바꿔줘"
+    • "3턴 이벤트를 더 재미있게 만들어줘"  
+    • "마법 왕국 배경을 더 신비롭게 수정해줘"
+    • "캐릭터 대사를 더 친근하게 만들어줘"
     
-    **👶 자녀 맞춤형 스토리 요청**
-            
-    • "저희 아이가 공룡을 좋아해서 공룡 화석 발견 뉴스를 추가해 주세요"
-            
-    • "퓨전 타코 트럭을 감자튀김 트럭으로 이름과 설명을 바꿔주세요"
-            
-    • "더 긍정적인 스토리로 만들어서 모든 트럭이 함께 성장하는 따뜻한 이야기로
-             수정해 주세요"
-    • "더 도전적으로 만들어서 주가 변동 폭을 2배 크게 하고 마지막까지 예측 불가능하게 해주세요"
+    **📚 교육적 개선:**
+    • "투자 설명을 더 쉬운 단어로 바꿔줘"
+    • "위험 수준 설명을 더 명확하게 해줘"
+    • "분산투자 개념을 강조해줘"
     
-    **🌟 창의적 가치 교육 요청**
-            
-    • "착한 소비를 강조하도록 유기농 재료 사용 트럭이 더 인기를 얻는 스토리로 바꿔주세요"
-            
-    • "세 트럭이 협력해서 연합 신메뉴를 출시하는 협동 이벤트를 추가해 주세요"
-            
-    • "노래하는 아이스크림, 무지개색 샌드위치 같은 판타지 요소를 추가해 주세요"
+    **🚫 처리할 수 없는 요청:**
+    • 새로운 게임 생성 (편집만 가능)
+    • 실제 투자 조언 
+    • 프로그래밍 관련 질문
+    • 일반적인 대화
     
     💾 **수정 완료 후 저장하기:**
     원하는 제목으로 나만의 스토리를 저장할 수 있어요!
@@ -74,8 +65,30 @@ def render_chat_interface(customizer):
             st.session_state.chat_history.append(("user", user_input))
             st.chat_message("user").write(user_input)
             
+            # 사용자 질문 검증
+            from source.utils.chatbot_helper import ChatbotHelper
+            chatbot_helper = ChatbotHelper()
+            validation_result = chatbot_helper.validate_user_request(user_input)
+            
             # AI 응답 생성
             with st.chat_message("assistant"):
+                if not validation_result["is_valid"]:
+                    # 부적절한 질문에 대한 가이드 응답
+                    st.error("❌ 요청을 처리할 수 없습니다")
+                    st.write(validation_result["guide_message"])
+                    
+                    if validation_result["suggested_actions"]:
+                        st.write("**💡 이런 요청을 해보세요:**")
+                        for suggestion in validation_result["suggested_actions"]:
+                            st.write(f"• {suggestion}")
+                    
+                    # 잘못된 요청도 히스토리에 기록
+                    guide_response = f"{validation_result['guide_message']}\n\n" + \
+                                   "💡 다음과 같은 요청을 해보세요:\n" + \
+                                   "\n".join([f"• {s}" for s in validation_result["suggested_actions"]])
+                    st.session_state.chat_history.append(("assistant", guide_response))
+                    return
+                
                 with st.spinner("스토리를 수정하고 있습니다..."):
                     try:
                         # 현재 스토리 이름 확인
