@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  story-chatbot:
+    build: .
+    container_name: making-story-chatbot
+    ports:
+      - "8501:8501"  # Streamlit
+      - "8000:8000"  # FastAPI (선택적)
+    environment:
+      # Google API 키 - 실제 값은 .env 파일이나 환경 변수로 설정
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      # 기타 환경 변수
+      - PYTHONPATH=/app
+      - STREAMLIT_SERVER_HEADLESS=true
+      - STREAMLIT_BROWSER_GATHER_USAGE_STATS=false
+    volumes:
+      # 스토리 저장 디렉토리를 호스트에 마운트 (데이터 영속성)
+      - ./saved_stories:/app/saved_stories
+      # 개발 중에만 사용 (코드 변경 사항 반영)
+      # - .:/app
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    # 메모리 제한 (필요에 따라 조정)
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
+
+  # FastAPI만 별도로 실행하고 싶은 경우
+  fastapi-server:
+    build: .
+    container_name: story-chatbot-api
+    ports:
+      - "8000:8000"
+    environment:
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - PYTHONPATH=/app
+    volumes:
+      - ./saved_stories:/app/saved_stories
+    command: ["fastapi"]
+    restart: unless-stopped
+    profiles:
+      - api-only  # docker-compose --profile api-only up으로 실행
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+# 네트워크 설정 (필요한 경우)
+networks:
+  default:
+    name: story-chatbot-network
+
+# 볼륨 설정 (영속적 데이터 저장이 필요한 경우)
+volumes:
+  story_data:
+    driver: local
