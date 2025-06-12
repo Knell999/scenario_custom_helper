@@ -29,17 +29,16 @@ COPY . .
 # 저장된 스토리 디렉토리 생성 (권한 설정)
 RUN mkdir -p saved_stories && chmod 755 saved_stories
 
-# 포트 노출
-EXPOSE 8501 8000
+# 포트 노출 (필요한 포트만 유지)
+EXPOSE 8000
 
-# 헬스체크 추가
+# 헬스체크 추가 (API 서버용)
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8501/_stcore/health || exit 1
+    CMD curl -f http://localhost:8000/health || exit 1
 
 # 시작 스크립트 복사 및 실행 권한 부여
-COPY docker-entrypoint.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+# COPY docker-entrypoint.sh /usr/local/bin/
+# RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
-# 기본 명령어 설정 (Streamlit 앱 실행)
-ENTRYPOINT ["docker-entrypoint.sh"]
-CMD ["streamlit"]
+# API 서버 실행 (FastAPI 또는 다른 서버)
+# CMD를 지정하지 않음 - docker-compose에서 override 할 수 있도록
