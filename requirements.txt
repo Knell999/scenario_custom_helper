@@ -1,5 +1,10 @@
 # Web Framework
 streamlit>=1.28.0
+fastapi>=0.104.0
+uvicorn>=0.24.0
+
+# HTTP Client (requests 제거됨 - 더 이상 사용하지 않음)
+# requests>=2.31.0
 
 # LLM Framework
 langchain>=0.1.0
