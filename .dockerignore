@@ -11,6 +11,9 @@ venv/
 .env.local
 .env.*.local
 
+# UV lock file (프로덕션에서는 requirements.txt 사용)
+uv.lock
+
 # Distribution / packaging
 .Python
 build/

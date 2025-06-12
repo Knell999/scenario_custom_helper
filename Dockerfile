@@ -1,44 +1,72 @@
-# Python 3.10 기반 이미지 사용
-FROM python:3.10-slim
+# 멀티스테이지 빌드 - 빌드 스테이지
+FROM python:3.10-slim as builder
+
+# 메타데이터 추가
+LABEL maintainer="knell999@example.com"
+LABEL description="AI Story Editing System with Streamlit and FastAPI"
+LABEL version="2.0.0"
+
+# UV 설치 (빌드 스테이지에서만)
+RUN pip install uv
 
 # 작업 디렉토리 설정
 WORKDIR /app
 
-# 시스템 패키지 업데이트 및 필요한 패키지 설치
-RUN apt-get update && apt-get install -y \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
-
-# Python 환경 변수 설정
-ENV PYTHONUNBUFFERED=1
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONPATH=/app
-
-# UV 설치 (빠른 Python 패키지 관리자)
-RUN pip install uv
-
-# 의존성 파일 복사
+# 의존성 파일만 먼저 복사 (캐시 최적화)
 COPY requirements.txt pyproject.toml ./
 
-# Python 의존성 설치
+# 의존성을 시스템에 설치
 RUN uv pip install --system -r requirements.txt
 
-# 프로젝트 파일 복사
-COPY . .
+# 프로덕션 스테이지
+FROM python:3.10-slim as production
 
-# 저장된 스토리 디렉토리 생성 (권한 설정)
-RUN mkdir -p saved_stories && chmod 755 saved_stories
+# 시스템 패키지 업데이트 및 런타임 필수 패키지만 설치
+RUN apt-get update && apt-get install -y \
+    curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
 
-# 포트 노출 (필요한 포트만 유지)
-EXPOSE 8000
+# Python 환경 변수 설정
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONPATH=/app \
+    PATH="/app/.local/bin:$PATH"
 
-# 헬스체크 추가 (API 서버용)
-HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+# non-root 사용자 생성 (보안 강화)
+RUN groupadd -r appuser && useradd -r -g appuser appuser
+
+# 작업 디렉토리 설정
+WORKDIR /app
+
+# 빌드 스테이지에서 설치된 Python 패키지 복사
+COPY --from=builder /usr/local/lib/python3.10/site-packages /usr/local/lib/python3.10/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+
+# 프로젝트 파일 복사 (소유자를 appuser로 설정)
+COPY --chown=appuser:appuser . .
+
+# 저장된 스토리 디렉토리 생성 및 권한 설정
+RUN mkdir -p saved_stories logs && \
+    chown -R appuser:appuser saved_stories logs && \
+    chmod 755 saved_stories logs
+
+# non-root 사용자로 전환
+USER appuser
+
+# 포트 노출 (Streamlit과 FastAPI 모두)
+EXPOSE 8501 8000
+
+# 헬스체크 추가 (더 강화된 버전)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
-# 시작 스크립트 복사 및 실행 권한 부여
-# COPY docker-entrypoint.sh /usr/local/bin/
-# RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+# 시작 스크립트 실행 권한 설정
+COPY --chown=appuser:appuser docker-entrypoint.sh /usr/local/bin/
+USER root
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+USER appuser
 
-# API 서버 실행 (FastAPI 또는 다른 서버)
-# CMD를 지정하지 않음 - docker-compose에서 override 할 수 있도록
+# 기본 명령어 설정 (docker-compose에서 override 가능)
+ENTRYPOINT ["docker-entrypoint.sh"]
+CMD ["fastapi"]
