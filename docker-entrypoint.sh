@@ -40,14 +40,19 @@ start_application() {
             ;;
         "fastapi")
             echo "🚀 FastAPI 서버 시작 중..."
+            echo "   비동기 처리 기능 활성화됨"
             exec uvicorn main:app \
                 --host 0.0.0.0 \
-                --port 8000
+                --port 8000 \
+                --workers 1 \
+                --loop asyncio \
+                --log-level info
             ;;
         "both")
             echo "🚀 Streamlit과 FastAPI 동시 시작 중..."
+            echo "   비동기 처리 기능 활성화됨"
             # FastAPI를 백그라운드에서 실행
-            uvicorn main:app --host 0.0.0.0 --port 8000 &
+            uvicorn main:app --host 0.0.0.0 --port 8000 --workers 1 --loop asyncio &
             # Streamlit을 포어그라운드에서 실행
             exec streamlit run app.py \
                 --server.address=0.0.0.0 \
