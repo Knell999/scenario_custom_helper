@@ -1,17 +1,30 @@
 """
-스토리 편집 컴포넌트 - 기존 스토리 수정 전용
+스토리 편집 컴포넌트 - 기존 스토리 수정 전용 (비동기 지원)
 """
 import streamlit as st
 import json
 import os
-from source.models.llm_handler import initialize_llm, create_prompt_template, generate_game_data
+import asyncio
+from typing import List, Dict, Tuple, Optional
+from source.models.llm_handler import (
+    initialize_llm, 
+    initialize_llm_async,
+    create_prompt_template, 
+    generate_game_data,
+    generate_game_data_async,
+    generate_game_data_stream,
+    generate_multiple_scenarios_async
+)
 from source.utils.prompts import get_system_prompt, get_story_modification_prompt
 from source.components.story_editor import StoryEditor
 from source.utils.chatbot_helper import ChatbotHelper
 from source.utils.security import security_validator
 from source.utils.performance import performance_monitor
+from source.utils.async_handler import (
+    AsyncTaskManager,
+    run_async_in_streamlit
+)
 import logging
-from typing import List, Dict, Tuple, Optional
 
 # 로깅 설정
 logger = logging.getLogger(__name__)
@@ -23,6 +36,7 @@ class GameCustomizer:
         self.story_editor = StoryEditor()
         self.chatbot_helper = ChatbotHelper()
         self.max_retries = 3
+        self.async_manager = AsyncTaskManager()
         self.initialize_llm_model()
         
     def initialize_llm_model(self) -> bool:
@@ -34,10 +48,20 @@ class GameCustomizer:
             logger.info(f"LLM 초기화 완료 ({duration:.2f}초)")
             return True
         except Exception as e:
-            logger.error(f"LLM 모델 초기화 실패: {e}")
-            st.error(f"LLM 모델 초기화 실패: {e}")
+            logger.error(f"LLM 초기화 실패: {str(e)}")
+            st.error(f"LLM 모델 초기화에 실패했습니다: {str(e)}")
             return False
-    
+
+    async def initialize_llm_async(self):
+        """비동기 LLM 모델 초기화"""
+        try:
+            self.llm = await initialize_llm_async()
+            logger.info("비동기 LLM 초기화 완료")
+            return True
+        except Exception as e:
+            logger.error(f"비동기 LLM 초기화 실패: {str(e)}")
+            raise Exception(f"비동기 LLM 모델 초기화에 실패했습니다: {str(e)}")
+
     def modify_existing_story(self, story_name: str, user_request: str, chat_history=None) -> Tuple[Optional[str], Dict]:
         """기존 스토리를 사용자 요청에 따라 수정"""
         performance_monitor.start_timer("story_modification")
@@ -148,6 +172,150 @@ class GameCustomizer:
             return None, {"error": f"스토리 수정 중 오류가 발생했습니다: {str(e)}"}
     
     
+    async def modify_existing_story_async(self, story_name: str, user_request: str, chat_history=None) -> Tuple[Optional[str], Dict]:
+        """기존 스토리를 비동기로 수정"""
+        performance_monitor.start_timer("story_modification_async")
+        
+        # 보안 검증
+        security_result = security_validator.validate_content_security(user_request)
+        if not security_result["is_safe"]:
+            logger.warning(f"보안 검증 실패: {security_result['issues']}")
+            return None, {"error": f"보안 검증 실패: {', '.join(security_result['issues'])}"}
+        
+        try:
+            # 기존 스토리 로드
+            original_story = self.story_editor.load_story(story_name)
+            if not original_story:
+                return None, {"error": f"스토리 '{story_name}'를 찾을 수 없습니다."}
+            
+            # 프롬프트 생성
+            system_prompt = get_system_prompt()
+            modification_prompt = get_story_modification_prompt(
+                original_story, 
+                user_request, 
+                chat_history or []
+            )
+            
+            prompt_template = create_prompt_template(system_prompt)
+            
+            # 비동기 LLM 호출
+            result = await generate_game_data_async(self.llm, prompt_template, modification_prompt)
+            
+            if result:
+                duration = performance_monitor.end_timer("story_modification_async")
+                logger.info(f"비동기 스토리 수정 완료 ({duration:.2f}초)")
+                return result, {"success": True, "duration": duration}
+            else:
+                return None, {"error": "LLM이 유효한 응답을 생성하지 못했습니다."}
+                
+        except Exception as e:
+            logger.error(f"비동기 스토리 수정 중 오류: {e}")
+            return None, {"error": f"스토리 수정 중 오류 발생: {str(e)}"}
+    
+    def modify_story_with_streaming(self, story_name: str, user_request: str, 
+                                  container, chat_history=None) -> Tuple[Optional[str], Dict]:
+        """스트리밍으로 스토리 수정"""
+        async def stream_callback(token):
+            await self.streaming_handler.stream_callback(token)
+        
+        async def modify_with_stream():
+            # 기존 스토리 로드
+            original_story = self.story_editor.load_story(story_name)
+            if not original_story:
+                return None, {"error": f"스토리 '{story_name}'를 찾을 수 없습니다."}
+            
+            # 프롬프트 생성
+            system_prompt = get_system_prompt()
+            modification_prompt = get_story_modification_prompt(
+                original_story, 
+                user_request, 
+                chat_history or []
+            )
+            
+            prompt_template = create_prompt_template(system_prompt)
+            
+            # 스트리밍으로 생성
+            result = await generate_game_data_stream(
+                self.llm, 
+                prompt_template, 
+                modification_prompt,
+                stream_callback
+            )
+            
+            return result, {"success": True}
+        
+        # 스트리밍 시작
+        import threading
+        streaming_thread = threading.Thread(
+            target=self.streaming_handler.start_streaming,
+            args=(container,)
+        )
+        streaming_thread.start()
+        
+        # 비동기 작업 실행
+        task_id = self.async_manager.run_async_task(
+            f"stream_modify_{story_name}",
+            modify_with_stream
+        )
+        
+        # 작업 완료 대기
+        while not self.async_manager.is_task_completed(task_id):
+            import time
+            time.sleep(0.5)
+        
+        # 스트리밍 중지
+        self.streaming_handler.stop_streaming()
+        streaming_thread.join()
+        
+        # 결과 반환
+        try:
+            return self.async_manager.get_task_result(task_id)
+        except Exception as e:
+            return None, {"error": str(e)}
+    
+    async def modify_multiple_stories_async(self, story_modifications: List[Dict]) -> List[Dict]:
+        """여러 스토리를 병렬로 수정"""
+        tasks = []
+        
+        for modification in story_modifications:
+            story_name = modification['story_name']
+            user_request = modification['request']
+            chat_history = modification.get('chat_history', [])
+            
+            task = self.modify_existing_story_async(story_name, user_request, chat_history)
+            tasks.append(task)
+        
+        # 병렬 실행
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        
+        # 결과 처리
+        processed_results = []
+        for i, result in enumerate(results):
+            if isinstance(result, Exception):
+                processed_results.append({
+                    'story_name': story_modifications[i]['story_name'],
+                    'success': False,
+                    'error': str(result)
+                })
+            else:
+                story_data, metadata = result
+                processed_results.append({
+                    'story_name': story_modifications[i]['story_name'],
+                    'success': metadata.get('success', False),
+                    'data': story_data,
+                    'metadata': metadata
+                })
+        
+        return processed_results
+    
+    def get_task_status(self, task_id: str) -> Dict:
+        """작업 상태 확인"""
+        return self.async_manager.get_task_status(task_id)
+    
+    def cancel_task(self, task_id: str):
+        """작업 취소"""
+        self.async_manager.cancel_task(task_id)
+    
     def get_story_summary(self, story_name: str):
         """스토리 요약 정보 반환"""
         story_data = self.story_editor.load_story(story_name)
@@ -198,3 +366,31 @@ class GameCustomizer:
             pass
             
         return debug_info
+    
+    def run_async_modification(self, story_name: str, user_request: str) -> str:
+        """
+        Streamlit UI에서 비동기 스토리 수정을 실행합니다.
+        
+        Args:
+            story_name (str): 수정할 스토리 이름
+            user_request (str): 사용자 수정 요청
+            
+        Returns:
+            str: 작업 ID
+        """
+        try:
+            # 비동기 작업 생성
+            async def async_task():
+                return await self.modify_existing_story_async(story_name, user_request)
+            
+            task_id = f"modify_{story_name}_{len(self.async_manager.tasks)}"
+            
+            # 비동기 작업 시작
+            self.async_manager.run_async_task(task_id, async_task)
+            
+            return task_id
+            
+        except Exception as e:
+            logger.error(f"비동기 수정 작업 시작 실패: {str(e)}")
+            st.error(f"작업 시작에 실패했습니다: {str(e)}")
+            return ""
