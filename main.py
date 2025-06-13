@@ -363,6 +363,53 @@ async def async_status():
     }
 
 
+@app.get("/performance")
+async def performance_metrics():
+    """시스템 성능 메트릭 엔드포인트"""
+    try:
+        import psutil
+        import os
+        
+        # 시스템 정보
+        cpu_percent = psutil.cpu_percent(interval=1)
+        memory = psutil.virtual_memory()
+        
+        # 프로세스 정보
+        process = psutil.Process(os.getpid())
+        process_memory = process.memory_info()
+        
+        return {
+            "system": {
+                "cpu_percent": cpu_percent,
+                "memory_total": memory.total,
+                "memory_available": memory.available,
+                "memory_percent": memory.percent
+            },
+            "process": {
+                "pid": os.getpid(),
+                "memory_rss": process_memory.rss,
+                "memory_vms": process_memory.vms,
+                "cpu_percent": process.cpu_percent()
+            },
+            "async_status": {
+                "task_manager_available": task_manager is not None,
+                "active_tasks": task_manager.get_active_task_count() if task_manager else 0,
+                "completed_tasks": task_manager.get_completed_task_count() if task_manager else 0
+            }
+        }
+    except ImportError:
+        return {
+            "error": "psutil not installed",
+            "async_status": {
+                "task_manager_available": task_manager is not None,
+                "active_tasks": task_manager.get_active_task_count() if task_manager else 0,
+                "completed_tasks": task_manager.get_completed_task_count() if task_manager else 0
+            }
+        }
+    except Exception as e:
+        return {"error": f"Performance metrics error: {str(e)}"}
+
+
 @app.post("/edit-scenario", response_model=ScenarioResponse)
 async def edit_scenario(request: StoryEditRequest):
     """
