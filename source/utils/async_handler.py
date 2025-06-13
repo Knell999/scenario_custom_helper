@@ -93,6 +93,36 @@ class AsyncTaskManager:
         if task_id in self.tasks:
             self.tasks[task_id].cancel()
             self.results[task_id] = {'status': 'cancelled'}
+    
+    def get_active_task_count(self) -> int:
+        """활성 작업 수를 반환합니다."""
+        active_count = 0
+        for task_id, task in self.tasks.items():
+            if not task.done():
+                active_count += 1
+        return active_count
+    
+    def get_completed_task_count(self) -> int:
+        """완료된 작업 수를 반환합니다."""
+        completed_count = 0
+        for result in self.results.values():
+            if result.get('status') in ['completed', 'error', 'cancelled']:
+                completed_count += 1
+        return completed_count
+    
+    async def cleanup(self):
+        """리소스 정리"""
+        # 모든 진행 중인 작업을 취소
+        for task_id, task in self.tasks.items():
+            if not task.done():
+                task.cancel()
+        
+        # ThreadPoolExecutor 종료
+        self.executor.shutdown(wait=True)
+        
+        # 결과 및 작업 정리
+        self.tasks.clear()
+        self.results.clear()
 
 
 class StreamingHandler:
