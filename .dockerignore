@@ -84,7 +84,7 @@ temp/
 
 # Development scripts
 run_app.sh
-*.sh
+# *.sh (docker-entrypoint.sh는 필요하므로 주석 처리)
 
 # Environment files (should be set via Docker environment variables)
 .env*
