@@ -57,9 +57,9 @@ USER appuser
 # 포트 노출 (Streamlit과 FastAPI 모두)
 EXPOSE 8501 8000
 
-# 헬스체크 추가 (더 강화된 버전)
+# 헬스체크 추가 (비동기 엔드포인트 포함)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
+    CMD curl -f http://localhost:8000/health && curl -f http://localhost:8000/async-status || exit 1
 
 # 시작 스크립트 실행 권한 설정
 COPY --chown=appuser:appuser docker-entrypoint.sh /usr/local/bin/

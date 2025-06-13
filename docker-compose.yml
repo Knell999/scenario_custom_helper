@@ -11,13 +11,16 @@ services:
     environment:
       - GOOGLE_API_KEY=${GOOGLE_API_KEY}
       - PYTHONPATH=/app
+      - UVICORN_LOOP=asyncio
+      - UVICORN_LOG_LEVEL=info
+      - ASYNC_SUPPORT=true
     volumes:
       - ./saved_stories:/app/saved_stories
       - ./logs:/app/logs  # 로그 볼륨 추가
     restart: unless-stopped
     command: ["fastapi"]
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test: ["CMD", "sh", "-c", "curl -f http://localhost:8000/health && curl -f http://localhost:8000/async-status"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -73,6 +76,9 @@ services:
     environment:
       - GOOGLE_API_KEY=${GOOGLE_API_KEY}
       - PYTHONPATH=/app
+      - UVICORN_LOOP=asyncio
+      - UVICORN_LOG_LEVEL=info
+      - ASYNC_SUPPORT=true
     volumes:
       - ./saved_stories:/app/saved_stories
       - ./logs:/app/logs
@@ -81,7 +87,7 @@ services:
     profiles:
       - api-only  # docker-compose --profile api-only up으로 실행
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test: ["CMD", "sh", "-c", "curl -f http://localhost:8000/health && curl -f http://localhost:8000/async-status"]
       interval: 30s
       timeout: 10s
       retries: 3
